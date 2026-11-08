@@ -186,6 +186,40 @@ export const projects = [
     ],
   },
   {
+    slug: 'duo-news',
+    genre: T('Journal numérique, iPhone Duo', 'Digital newspaper, iPhone Duo'),   // repris du Figma (couverture)
+    title: 'Duo News',
+    year: '2026',
+    milieu: T('Presse numérique', 'Digital press'),
+    cover: 'duo-news/01-couverture.webp',
+    spec: [
+      [T('Support', 'Device'), T('iPhone Duo, écran pliable : ouvert en double page, fermé en une page', 'iPhone Duo, foldable screen: open as a double page, closed as a single page')],
+      [T('Contenu', 'Content'), T('Sources RSS d’actualité locales, réglables', 'Local RSS news sources, user-selectable')],
+      [T('Rendu', 'Output'), T('Prototype de démonstration Figma', 'Figma demo prototype')],
+    ],
+    intent: T('Un journal qui rassemble tes sources RSS d’actualité, voulu pour l’iPhone Duo.', 'A newspaper that gathers your RSS news sources, designed for the iPhone Duo.'),
+    context: T(
+      'Projet de Master Design, Environnements numériques (Université de Strasbourg, octobre 2026). Une édition quotidienne qui reprend les codes de la presse papier.',
+      'Master’s project in Design, Digital Environments (University of Strasbourg, October 2026). A daily edition that borrows the codes of print newspapers.',
+    ),
+    capture: T('L’écran intérieur de l’iPhone Duo : OLED pliable 7,6 pouces, 1878 × 2670 px. Fermé, il prend un format passeport.', 'The iPhone Duo inner screen: 7.6-inch foldable OLED, 1878 × 2670 px. Closed, it is passport-sized.'),
+    processing: T('Trois familles de caractères, onze styles de texte appliqués à tous les composants ; Hubot Sans ExtraBold pour les gros titres, dans l’esprit des unes de presse.', 'Three typefaces, eleven text styles applied to every component; Hubot Sans ExtraBold for headlines, in the spirit of newspaper front pages.'),
+    staging: T('Un prototype en deux parcours, journal ouvert et journal fermé : accueil, réglages des sources, pages d’articles, fin de l’édition.', 'A prototype with two flows, open and closed: home, source settings, article pages, end of the edition.'),
+    learned: TODO('ce que tu as appris, les limites', 'what you learned, the limits'),
+    role: TODO('ton rôle', 'your role'),
+    tools: 'Figma',
+    credits: [],
+    media: [
+      { src: 'duo-news/02-ouvert-une.webp', alt: T('Le journal ouvert en double page', 'The newspaper open as a double page') },
+      { src: 'duo-news/duo-news-ouvert.mp4', poster: 'duo-news/duo-news-ouvert-poster.webp', alt: T('Parcours du journal ouvert, de l’accueil à la fin de l’édition', 'Open newspaper flow, from home to the end of the edition') },
+      { src: 'duo-news/03-ouvert-ferme.webp', alt: T('Accueil et réglages, ouvert et fermé', 'Home and settings, open and closed') },
+      { src: 'duo-news/04-ferme-trio.webp', alt: T('Trois pages du journal fermé', 'Three pages of the closed newspaper') },
+      { src: 'duo-news/duo-news-ferme.mp4', poster: 'duo-news/duo-news-ferme-poster.webp', alt: T('Parcours du journal fermé, page par page', 'Closed newspaper flow, page by page') },
+      { src: 'duo-news/05-ouvert-pages.webp', alt: T('Pages 03 et 04 en double page', 'Pages 03 and 04 as a double page') },
+      { src: 'duo-news/06-reglages-fin.webp', alt: T('Réglages des sources et fin de l’édition', 'Source settings and end of the edition') },
+    ],
+  },
+  {
     slug: 'mondes-immerges',
     research: true,   // présenté seulement dans Recherche
     genre: T('Article de recherche', 'Research paper'),   // repris du portfolio
