@@ -433,8 +433,13 @@ main { position: relative; }   /* pas de contexte d'empilement : le mot de l'acc
 .fiche-brand { position: fixed; left: 50%; top: 22px; height: 48px; width: auto; z-index: 56; display: block; pointer-events: none; opacity: 0; visibility: hidden;
   transition: opacity 0.4s var(--ease-flow) 0.15s, visibility 0s linear 0.55s; }
 .fiche-open .fiche-brand { opacity: 1; visibility: visible; transition: opacity 0.45s var(--ease-flow) 0.25s, visibility 0s; }
+/* petit logo de la barre déjà affiché : c'est le même logo, qui ne doit jamais clignoter. Le relais est instantané à
+   l'ouverture (avant que le rideau ne le recouvre) ; à la fermeture, il reste jusqu'à ce que la fiche ait fini de glisser
+   hors de l'écran (fiche-out, 0,75 s), puis s'efface d'un coup sur le logo de la barre, identique et au même pixel. */
+.brand-on .fiche-brand { transition: opacity 0s linear 0.75s, visibility 0s linear 0.75s; }
+.brand-on.fiche-open .fiche-brand { transition: none; }
 .fiche-brand img { display: block; width: 100%; height: 100%; }
-@media (prefers-reduced-motion: reduce) { .fiche-brand, .fiche-open .fiche-brand { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .fiche-brand, .fiche-open .fiche-brand, .brand-on .fiche-brand { transition: none; } }
 .fiche-veil.is-on { display: block; animation: veil-out 0.75s cubic-bezier(0.65, 0, 0.35, 1) forwards; }
 @keyframes fiche-out { to { transform: translate3d(118vw, 0, 0); } }
 /* fiche et voile vont 18 vw plus loin que le bord de l'écran, ensemble (même durée, même courbe : le voile reste collé au
