@@ -3,27 +3,6 @@ import './styles.css'
 import './logotype-animations.css'
 import { FLOW, updateFlow } from './flow.js'
 import Lenis from 'lenis'
-// diagnostic (dev) : ?off=gl,bg,blur,lenis,fx2 coupe un élément ; un compteur i/s s'affiche
-const OFF = new Set(import.meta.env.DEV ? (new URLSearchParams(location.search).get('off') ?? '').split(',').filter(Boolean) : [])
-if (import.meta.env.DEV && new URLSearchParams(location.search).has('off')) {
-  if (OFF.has('name')) document.head.append(Object.assign(document.createElement('style'), { textContent: '.hero__name{display:none!important}' }))
-  if (OFF.has('dock')) document.head.append(Object.assign(document.createElement('style'), { textContent: '.hero__dock{animation:none!important}' }))
-  if (OFF.has('words')) document.head.append(Object.assign(document.createElement('style'), { textContent: '.hero__line{display:none!important}' }))
-  if (OFF.has('heroall')) document.head.append(Object.assign(document.createElement('style'), { textContent: '.hero *{display:none!important}' }))
-  if (OFF.has('layer')) document.head.append(Object.assign(document.createElement('style'), { textContent: '.hero__name{will-change:transform}' }))
-  if (OFF.has('vmask')) document.head.append(Object.assign(document.createElement('style'), { textContent: '.side{--vmask:linear-gradient(#000,#000)!important}' }))
-  if (OFF.has('sideblur')) document.head.append(Object.assign(document.createElement('style'), { textContent: '.side{-webkit-backdrop-filter:none!important;backdrop-filter:none!important}' }))
-  if (OFF.has('sidemask')) document.head.append(Object.assign(document.createElement('style'), { textContent: '.side{-webkit-mask:none!important;mask:none!important}' }))
-  if (OFF.has('blur')) document.head.append(Object.assign(document.createElement('style'), { textContent: '*{-webkit-backdrop-filter:none!important;backdrop-filter:none!important}' }))
-  if (OFF.has('gl')) document.head.append(Object.assign(document.createElement('style'), { textContent: '.gl-canvas{display:none!important}' }))
-  if (OFF.has('bg')) document.head.append(Object.assign(document.createElement('style'), { textContent: '.bg-canvas{display:none!important}' }))
-  const el = Object.assign(document.createElement('div'), { style: 'position:fixed;left:8px;bottom:8px;z-index:99999;font:12px monospace;background:#000;color:#0f0;padding:4px 6px' })
-  addEventListener('DOMContentLoaded', () => document.body.append(el))
-  let n = 0, t0 = performance.now(), worst = 0, last = t0
-  const f = (t) => { worst = Math.max(worst, t - last); last = t; n++; if (t - t0 > 1000) { el.textContent = `${Math.round(n * 1000 / (t - t0))} i/s · pire ${Math.round(worst)} ms · off=${[...OFF]}`; n = 0; t0 = t; worst = 0 } requestAnimationFrame(f) }
-  requestAnimationFrame(f)
-}
-if (/^((?!chrome|android).)*safari/i.test(navigator.userAgent)) document.documentElement.classList.add('is-safari')
 import { createGL, loaderRadius } from './gl.js'
 import { createBackdrop } from './backdrop.js'
 import { IRIS } from './iris-config.js'
@@ -107,7 +86,7 @@ if (!reduced) root.classList.add('liquid')
 // un geste qui commence à l'horizontale appartient aux pistes : il ne fait pas défiler la page.
 let touchAxis = null
 addEventListener('touchstart', () => { touchAxis = null }, { passive: true, capture: true })
-const lenis = reduced || OFF.has('lenis') ? null : new Lenis({ lerp: 0.1, overscroll: false,   // aux extrémités de la page : aucun défilement natif ni rebond
+const lenis = reduced ? null : new Lenis({ lerp: 0.1, overscroll: false,   // aux extrémités de la page : aucun défilement natif ni rebond
   wheelMultiplier: 0.9, gestureOrientation: 'both',   // glisser à l'horizontale (pavé tactile) fait défiler la page comme à la verticale
   syncTouch: false,   // au doigt : défilement natif du téléphone (inertie, rebonds, vitesse : ceux du système)
   virtualScroll: (data) => {
@@ -277,7 +256,7 @@ const fiches = [...document.querySelectorAll('.fiche')].map((f) => {
     if (k && !e.target.closest('a, button')) { e.preventDefault(); by(k * innerWidth * 0.6) }
   })
   let down = null
-  row.addEventListener('pointerdown', (e) => { if (!wide.matches || e.button || e.target.closest('a, button')) return; down = { x: e.clientX, t: F.target, id: e.pointerId, moved: false } })
+  row.addEventListener('pointerdown', (e) => { if (!wide.matches || e.button || e.target.closest('a, button, .book')) return; down = { x: e.clientX, t: F.target, id: e.pointerId, moved: false } })
   addEventListener('pointermove', (e) => {
     if (!down || e.pointerId !== down.id) return
     const dx = e.clientX - down.x
@@ -478,12 +457,10 @@ const wordsSvg = [...document.querySelectorAll('.hero .studio__word')]
 // par des dégradés ; pour chaque arrêt (position xn de 0 à 1 sur le mot), l'avancée locale s (0 : rien, 1 : net et
 // plein) suit une bande qui va de gauche à droite, plafonnée par la retenue (rien n'est entièrement net avant la fin)
 const sweeps = wordsSvg.filter((w) => w.dataset.bande).map((el) => ({ el, stops: [...el.querySelectorAll('.bal-g')].map((g) => [...g.querySelectorAll('stop')]),
-  b: +el.dataset.bande, r: +el.dataset.retenue, last: -1, cv: reduced || OFF.has('cvs') ? null : sweepCanvas(el) }))
+  b: +el.dataset.bande, r: +el.dataset.retenue, last: -1, cv: reduced ? null : sweepCanvas(el) }))
 // poids des trois copies pour une avancée s : de la très floue à la nette ; leur somme vaut s (l'opacité)
-if (import.meta.env.DEV) Object.assign(window, { __sweeps: sweeps, __sweep: (d) => { window.__sweepHold = false; sweep(d); window.__sweepHold = true } })
 const sweepW = (s) => s <= 0.5 ? [s * (1 - 2 * s), 2 * s * s, 0] : [0, s * (2 - 2 * s), s * (2 * s - 1)]
 function sweep(draw) {
-  if (import.meta.env.DEV && window.__sweepHold) return
   const a = Math.round((1 - draw) * 1000) / 1000
   for (const sw of sweeps) {
     if (a === sw.last) continue
@@ -611,14 +588,13 @@ function scrollEffects() {
   const p = k(0.12, 0.5)
   const draw = (1 - Math.min(1, p * 1.2)).toFixed(3), fill = Math.min(1, Math.max(0, (p - 0.4) / 0.6)).toFixed(3)
   wordsSvg.forEach((w) => {
-    if (OFF.has('novars') && w.classList.contains('hero__name')) return
     const prev = wordsVals.get(w)
     if (prev && prev[0] === draw && prev[1] === fill) return   // inchangé : aucune écriture (pas de restyle inutile)
     wordsVals.set(w, [draw, fill])
     w.style.setProperty('--draw', draw)
     w.style.setProperty('--fill', fill)
   })
-  if (!OFF.has('sweep')) sweep(1 - Math.min(1, p * 1.2))
+  sweep(1 - Math.min(1, p * 1.2))
   wordBlocks.forEach((b, j) => {
     const r = blockRects[j]
     const p = Math.min(1, Math.max(0, (vh * 0.85 - r.top) / (r.height + vh * 0.25)))
@@ -722,22 +698,19 @@ Promise.race([
   if (backTo) { const go = () => { const el = document.getElementById(backTo); if (!el) return; const y = el.getBoundingClientRect().top + scrollY - innerHeight * 0.15; if (lenis) lenis.scrollTo(y, { immediate: true, force: true }); else scrollTo(0, y) }; go(); setTimeout(go, 300) }
 }))
 
-const fxCss = OFF.has('side') ? null : startFxCss()   // grain des bandes de flou CSS
+const fxCss = startFxCss()   // grain des bandes de flou CSS
 
 
-if (import.meta.env.DEV) window.__lenis = lenis
-const PROF = import.meta.env.DEV && new URLSearchParams(location.search).has('prof') ? (window.__prof = {}) : null
-const pt = (k, fn) => { if (!PROF) return fn(); const a = performance.now(); fn(); (PROF[k] ||= []).push(performance.now() - a) }
 function loop(t) {
-  pt('lenis', () => lenis?.raf(t))
+  lenis?.raf(t)
   // pistes et fiches d'abord, puis le WebGL : les images sont dessinées à la position finale des titres (même image)
-  pt('work', () => workFrame(t))
-  pt('fiche', () => ficheFrame(t))
-  pt('hero', () => updateHero(t, hero))   // avancée de la scène d'accueil (freinée sur écran tactile)
-  pt('flow', () => updateFlow(t))   // roue « flux » : une texture par image, partagée par le chargeur, le logo et la lentille
-  pt('bg', () => { if (!OFF.has('bg')) backdrop?.frame(t) })
-  pt('gl', () => { if (!OFF.has('gl')) gl?.frame(t) })
-  pt('fx', () => { if (!reduced) scrollEffects() })
+  workFrame(t)
+  ficheFrame(t)
+  updateHero(t, hero)   // avancée de la scène d'accueil (freinée sur écran tactile)
+  updateFlow(t)   // roue « flux » : une texture par image, partagée par le chargeur, le logo et la lentille
+  backdrop?.frame(t)
+  gl?.frame(t)
+  if (!reduced) scrollEffects()
   requestAnimationFrame(loop)
 }
 requestAnimationFrame(loop)

@@ -633,17 +633,6 @@ export function createGL(canvas, { reduced }) {
   const heroEl = document.querySelector('.hero'), dockVals = {}
   const setDock = (k, v) => { if (dockVals[k] !== v) { dockVals[k] = v; heroEl.style.setProperty(k, v) } }   // seulement si la valeur change
   const DOCK_CSS = CSS.supports('animation-timeline: scroll()')
-  // qualité adaptative : si les images ralentissent (Safari surtout : toile plein écran en 2× + flous CSS), la densité de
-  // la toile baisse par paliers jusqu'à retrouver ~60 i/s ; jamais sous 1×. qCap = plafond courant de densité
-  let qCap = /^((?!chrome|android).)*safari/i.test(navigator.userAgent) ? 1.5 : 8, qT = 0, qN = 0, qLast = 0
-  function adapt(now) {
-    const dt = qLast ? now - qLast : 16.7; qLast = now
-    if (dt > 100 || document.hidden) return   // onglet en arrière-plan, pause : ignoré
-    qT += dt; qN++
-    if (qN < 45) return
-    const avg = qT / qN; qT = qN = 0
-    if (avg > 19 && dpr > 1) { qCap = Math.max(1, dpr - 0.25); resize() }
-  }
   function resize() {
     W = innerWidth; H = canvas.clientHeight || innerHeight   // toile en 100lvh (CSS) : jamais plus courte que l'écran
     // résolution : jusqu'à 2× comme toujours (1,75× sur téléphone) ; au-delà, la densité réelle de l'écran tant que la toile
@@ -653,7 +642,7 @@ export function createGL(canvas, { reduced }) {
     const phone = W < 760 && matchMedia('(pointer: coarse)').matches
     // téléphone : 1,75× pour les vignettes (coût) ; mais tant que le gros logo de l'accueil est dessiné ici (heroHi), la
     // densité réelle de l'écran (3× sur iPhone, jusqu'à 4× sur Android) : sinon la toile est agrandie par le navigateur et ses bords sont flous
-    dpr = Math.min(devicePixelRatio || 1, phone ? (heroHi ? 4 : 1.75) : Math.min(qCap, Math.max(2, Math.min(8, Math.sqrt(PX_BUDGET / Math.max(1, W * H))))))
+    dpr = Math.min(devicePixelRatio || 1, phone ? (heroHi ? 4 : 1.75) : Math.max(2, Math.min(8, Math.sqrt(PX_BUDGET / Math.max(1, W * H)))))
     canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr)
   }
   resize(); addEventListener('resize', resize)
@@ -676,7 +665,6 @@ export function createGL(canvas, { reduced }) {
   let perfEl = null
   if (perfOn) { perfEl = document.createElement('div'); perfEl.style.cssText = 'position:fixed;left:8px;bottom:8px;z-index:9999;padding:6px 10px;border-radius:8px;background:rgb(0 0 0 / .8);color:#fff;font:12px/1.4 ui-monospace,monospace;pointer-events:none'; document.body.append(perfEl) }
   function frame(now) {
-    adapt(now)
     if (!perfOn) return draw(now)
     const q = tq?.createQueryEXT(); if (q) tq.beginQueryEXT(tq.TIME_ELAPSED_EXT, q)
     const t0 = performance.now(); draw(now); perfJs.push(performance.now() - t0)

@@ -85,10 +85,6 @@ a { color: inherit; }
    le chargement, la barre n'a que ses liens. Sans fondu d'opacité : pendant un fondu, le navigateur coupe le flou des
    calques puis le rétablit d'un coup (à-coup visible) */
 .js:not(.hero-done) .topbar .topbar__glass { visibility: hidden; }
-/* Safari : 5 flous empilés au-dessus d'une toile WebGL redessinée à chaque image coûtent trop (saccades au défilement) ;
-   un seul calque de flou moyen à la place */
-.is-safari .topbar__glass i:not(:nth-child(3)) { display: none; }
-.is-safari .topbar__glass i:nth-child(3) { -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); -webkit-mask: linear-gradient(to top, transparent, #000 70%); mask: linear-gradient(to top, transparent, #000 70%); }
 .topbar__glass i:nth-child(1) { -webkit-backdrop-filter: blur(1px); backdrop-filter: blur(1px); -webkit-mask: linear-gradient(to top, transparent 0%, #000 20%, #000 40%, transparent 60%); mask: linear-gradient(to top, transparent 0%, #000 20%, #000 40%, transparent 60%); }
 .topbar__glass i:nth-child(2) { -webkit-backdrop-filter: blur(2px); backdrop-filter: blur(2px); -webkit-mask: linear-gradient(to top, transparent 20%, #000 40%, #000 60%, transparent 80%); mask: linear-gradient(to top, transparent 20%, #000 40%, #000 60%, transparent 80%); }
 .topbar__glass i:nth-child(3) { -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); -webkit-mask: linear-gradient(to top, transparent 40%, #000 60%, #000 80%, transparent 100%); mask: linear-gradient(to top, transparent 40%, #000 60%, #000 80%, transparent 100%); }
@@ -737,8 +733,10 @@ main { position: relative; }   /* pas de contexte d'empilement : le mot de l'acc
 .fiche__media figure.book { position: relative; overflow: hidden; touch-action: pan-y;
   background: radial-gradient(60% 70% at 30% 20%, rgba(253, 53, 165, .18), transparent 70%), radial-gradient(60% 70% at 75% 85%, rgba(34, 224, 216, .14), transparent 70%), #141416; }
 .book__poster { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain !important; padding: 6%; box-sizing: border-box; transition: opacity .6s; }
-.book__mount { position: absolute; inset: 0; opacity: 0; transition: opacity .8s; }
-.book__mount .flip-book, .book__mount .flip-book .view { background: transparent !important; }
+.book__mount { position: absolute; inset: 0; display: grid; place-items: center; opacity: 0; transition: opacity .8s; }
+.book__stage { position: relative; flex: none; transition: transform .9s cubic-bezier(.2,.7,.2,1); }
+.book__page { background: #fff; overflow: hidden; }
+.book__page canvas { display: block; width: 100%; height: 100%; }
 .book[data-state="ready"] .book__mount { opacity: 1; }
 .book[data-state="ready"] .book__poster, .book[data-state="ready"] .book__load { opacity: 0; pointer-events: none; }
 .book__load { position: absolute; left: 50%; bottom: 7%; transform: translateX(-50%); display: grid; justify-items: center; gap: 10px; color: #fff; transition: opacity .4s; }

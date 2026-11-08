@@ -11,13 +11,17 @@ export function startFxCss() {
   const near = new Set()
   const io = new IntersectionObserver((es) => es.forEach((e) => (e.isIntersecting ? near.add(e.target) : near.delete(e.target))), { rootMargin: '20% 0px' })
   pins.forEach((p) => io.observe(p))
-  function tick() {
-    requestAnimationFrame(tick)
-    for (const pin of near) {
-      const top = Math.round(pin.getBoundingClientRect().top)
-      if (pin._pt !== top) { pin._pt = top; pin.style.setProperty('--pt', `${top}px`) }
-      if (pin._vh !== innerHeight) { pin._vh = innerHeight; pin.style.setProperty('--vh', `${innerHeight}px`) }
-    }
+  // appelé par la boucle principale (main.js), en deux temps : lectures de toutes les positions, puis écritures ;
+  // jamais de lecture après une écriture dans la même image (sinon mise en page forcée : saccades sous Safari)
+  const tops = new Map()
+  return {
+    read() { tops.clear(); for (const pin of near) tops.set(pin, Math.round(pin.getBoundingClientRect().top)) },
+    write() {
+      const vh = innerHeight
+      for (const [pin, top] of tops) {
+        if (pin._pt !== top) { pin._pt = top; pin.style.setProperty('--pt', `${top}px`) }
+        if (pin._vh !== vh) { pin._vh = vh; pin.style.setProperty('--vh', `${vh}px`) }
+      }
+    },
   }
-  requestAnimationFrame(tick)
 }
