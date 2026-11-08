@@ -232,6 +232,6 @@ export function render(lang) {
 
 ${projects.map(fiche).join('')}
 <div class="fiche-veil" aria-hidden="true"></div>
-<span class="fiche-brand" aria-hidden="true"><img class="only-dark" src="${root}media/monogram-iris-dark.svg?v=${MONO_V}" alt="" width="470" height="576" draggable="false"><img class="only-light" src="${root}media/monogram-iris-light.svg?v=${MONO_V}" alt="" width="470" height="576" draggable="false"></span>
+<a class="fiche-brand" href="#top" aria-label="Holosene, accueil"><img class="only-dark" src="${root}media/monogram-iris-dark.svg?v=${MONO_V}" alt="" width="470" height="576" draggable="false"><img class="only-light" src="${root}media/monogram-iris-light.svg?v=${MONO_V}" alt="" width="470" height="576" draggable="false"></a>
 `
 }

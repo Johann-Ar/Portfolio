@@ -211,14 +211,6 @@
 1920,
 1080
 ],
-"voyageur-1/recit.webp": [
-1920,
-1080
-],
-"voyageur-1/point-bleu.webp": [
-1920,
-1080
-],
 "voyageur-1/galerie.webp": [
 1920,
 1080
@@ -230,5 +222,9 @@
 "voyageur-1/voyageur-volume.mp4": [
 1920,
 1080
+],
+"voyageur-1/voyageur-recit.mp4": [
+1600,
+900
 ]
 }

@@ -137,6 +137,13 @@ document.addEventListener('click', (e) => {
   if (!card || e.target.closest('a')) return
   card.querySelector('a[href]')?.click()
 })
+// logo au-dessus d'une fiche : ferme la fiche et ramène tout en haut de l'accueil
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.fiche-brand')) return
+  e.preventDefault(); e.stopImmediatePropagation()
+  history.pushState(null, '', '#top'); syncFiche()
+  lenis ? lenis.scrollTo(0, { immediate: true, force: true }) : scrollTo(0, 0)
+}, true)
 document.addEventListener('click', (e) => {
   const a = e.target.closest('a[href^="#"]')
   const id = a?.getAttribute('href').slice(1)
