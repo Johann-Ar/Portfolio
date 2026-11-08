@@ -1,6 +1,6 @@
-# Publie le site compilé sur GitHub Pages (https://johann-ar.github.io/Holosene/), en plus de Vercel.
+# Publie le site compilé sur GitHub Pages (https://johann-ar.github.io/Portfolio/), en plus de Vercel.
 # GitHub Pages ne compile rien : sans ce workflow, il servait les fichiers sources (index.html non compilé, page vide).
-# Le site y est publié dans le dossier /Holosene/ (BASE_PATH, pour les liens de la page 404) ; l'adresse de référence
+# Le site y est publié dans le dossier /Portfolio/ (BASE_PATH, pour les liens de la page 404) ; l'adresse de référence
 # (canonical, sitemap) reste celle de Vercel.
 name: GitHub Pages
 
@@ -30,7 +30,7 @@ jobs:
       - run: npm ci
       - run: npm run build
         env:
-          BASE_PATH: /Holosene/
+          BASE_PATH: /Portfolio/
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist
