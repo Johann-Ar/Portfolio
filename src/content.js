@@ -2,7 +2,9 @@
  * Contenu du site Holosene (FR / EN).
  * Règle : uniquement des informations fournies par Johann (portfolio, CV, brief). Rien d'inventé.
  * T('fr', 'en') : texte traduit. TODO('…') : à fournir par Johann, affiché seulement en mode développement (?dev).
- * Médias : chemins relatifs à public/media/.
+ * Médias : chemins relatifs à public/media/. media[] : dans l'ordre contexte → détails → vue d'ensemble ; layout: 'stack'
+ *   = petite case, deux 'stack' qui se suivent partagent une case double (jamais deux cases doubles d'affilée) ;
+ *   ratio (facultatif) = format imposé, sinon le format le plus proche de l'image ; .mp4 = vidéo muette en boucle.
  */
 export const T = (fr, en = fr) => ({ fr, en })
 export const TODO = (fr, en) => ({ todo: true, fr: `[À compléter par Johann : ${fr}]`, en: `[To be completed by Johann: ${en || fr}]` })
@@ -96,14 +98,16 @@ export const projects = [
     credits: [TODO('auteur de la musique', 'music credit')],
     link: { label: T('Voir le film', 'Watch the film'), href: 'https://www.youtube.com/watch?v=1lXEIx5jFCQ' },
     media: [
+      // contexte (le film), puis le traitement en 4D, puis le rendu d'ensemble
       { src: '4derives/084.webp', alt: T('Image d’ouverture du film 4Dérives', 'Opening still of 4Dérives') },
       { src: '4derives/080.webp', alt: T('Image du film, automne', 'Still from the film, autumn') },
-      { src: '4derives/078.webp', alt: T('Image du film, hiver', 'Still from the film, winter') },
-      { src: '4derives/082.webp', alt: T('Image du film, printemps', 'Still from the film, spring') },
+      { src: '4derives/082.webp', alt: T('Image du film, printemps', 'Still from the film, spring'), layout: 'stack' },
+      { src: '4derives/078.webp', alt: T('Image du film, hiver', 'Still from the film, winter'), layout: 'stack' },
       { src: '4derives/086.webp', alt: T('Image après traitement', 'Processed image') },
       { src: '4derives/073.webp', alt: T('Mouvement de caméra dans un volume 4D', 'Camera move inside a 4D volume') },
-      { src: '4derives/075.webp', alt: T('Essai 4D Shape of Motion', '4D Shape of Motion test') },
-      { src: '4derives/077.webp', alt: T('Rendu 3D Luma AI', 'Luma AI 3D render') },
+      { src: '4derives/075.webp', alt: T('Essai 4D Shape of Motion', '4D Shape of Motion test'), layout: 'stack' },
+      { src: '4derives/067.webp', alt: T('Le volume 4D dans SuperSplat', 'The 4D volume in SuperSplat'), layout: 'stack' },
+      { src: '4derives/077.webp', alt: T('Rendu 3D Luma AI', 'Luma AI 3D render'), ratio: 2.4 },
     ],
   },
   {
@@ -136,14 +140,16 @@ export const projects = [
     credits: [T('Vidéos : Schmidt Ocean Institute', 'Footage: Schmidt Ocean Institute'), TODO('mention exacte exigée par la licence du Schmidt Ocean Institute', 'exact licence wording')],
     link: { label: T('Ouvrir le projet', 'Open the project'), href: 'https://holosene.github.io/dumbo-biovolume/' },
     media: [
-      { src: 'dumbo/058.webp', alt: T('Volume créé à partir d’une vidéo de submersible', 'Volume built from submersible footage') },
-      { src: 'dumbo/053.webp', alt: T('La vidéo source mise en volume', 'The source footage turned into a volume') },
-      { src: 'dumbo/054.webp', alt: T('Le volume vu de côté', 'The volume seen from the side') },
-      { src: 'dumbo/057.webp', alt: T('L’espace Dumbo, près d’un mur', 'The Dumbo space, close to a wall') },
+      // contexte (l'espace), puis la mise en volume, puis la galerie d'ensemble
       { src: 'dumbo/056.webp', alt: T('L’espace Dumbo, l’entrée', 'The Dumbo space, the entrance') },
-      { src: 'dumbo/041.webp', alt: T('L’IA isole le sujet de l’image', 'AI isolating the subject') },
-      { src: 'dumbo/052.webp', alt: T('Galerie de volumes', 'Gallery of volumes') },
-      { src: 'dumbo/061.webp', alt: T('Volume d’une créature', 'Volume of a creature') },
+      { src: 'dumbo/057.webp', alt: T('L’espace Dumbo, près d’un mur', 'The Dumbo space, close to a wall') },
+      { src: 'dumbo/041.webp', alt: T('L’IA isole le sujet de l’image', 'AI isolating the subject'), layout: 'stack' },
+      { src: 'dumbo/053.webp', alt: T('La vidéo source mise en volume', 'The source footage turned into a volume'), layout: 'stack' },
+      { src: 'dumbo/058.webp', alt: T('Volume créé à partir d’une vidéo de submersible', 'Volume built from submersible footage') },
+      { src: 'dumbo/054.webp', alt: T('Le volume vu de côté', 'The volume seen from the side') },
+      { src: 'dumbo/061.webp', alt: T('Volume d’une créature', 'Volume of a creature'), layout: 'stack' },
+      { src: 'dumbo/048.webp', alt: T('Volume d’un animal marin', 'Volume of a sea creature'), layout: 'stack' },
+      { src: 'dumbo/052.webp', alt: T('Galerie de volumes', 'Gallery of volumes'), ratio: 2.2 },
     ],
   },
   {
@@ -176,14 +182,16 @@ export const projects = [
     credits: [T('Photographies © Nicolas Floc’h', 'Photographs © Nicolas Floc’h')],
     link: { label: T('Ouvrir le projet', 'Open the project'), href: 'https://holosene.github.io/photographique-volume' },
     media: [
+      // contexte (le site), puis les états et la profondeur, puis la salle d'exposition
       { src: 'photographique-volume/034.webp', alt: T('Le site web', 'The website') },
       { src: 'photographique-volume/029.webp', alt: T('Volume photographique, état 01', 'Photographic volume, state 01') },
-      { src: 'photographique-volume/030.webp', alt: T('Volume photographique, état 03', 'Photographic volume, state 03') },
-      { src: 'photographique-volume/031.webp', alt: T('Volume photographique, état 07', 'Photographic volume, state 07') },
-      { src: 'photographique-volume/036.webp', alt: T('Test de projection dans une salle d’exposition 3D', 'Projection test in a 3D exhibition room') },
+      { src: 'photographique-volume/030.webp', alt: T('Volume photographique, état 03', 'Photographic volume, state 03'), layout: 'stack' },
+      { src: 'photographique-volume/031.webp', alt: T('Volume photographique, état 07', 'Photographic volume, state 07'), layout: 'stack' },
       { src: 'photographique-volume/028.webp', alt: T('Profondeur estimée par IA et par la lumière', 'Depth estimated by AI and from light') },
-      { src: 'photographique-volume/017.webp', alt: T('Prototype : bloc photographique', 'Prototype: photographic block') },
-      { src: 'photographique-volume/033.webp', alt: T('Nicolas Floc’h, série Invisible', 'Nicolas Floc’h, Invisible series') },
+      { src: 'photographique-volume/018.webp', alt: T('Volume photographique, éclatement', 'Photographic volume, burst') },
+      { src: 'photographique-volume/017.webp', alt: T('Prototype : bloc photographique', 'Prototype: photographic block'), layout: 'stack' },
+      { src: 'photographique-volume/027.webp', alt: T('Carte de profondeur', 'Depth map'), layout: 'stack' },
+      { src: 'photographique-volume/036.webp', alt: T('Test de projection dans une salle d’exposition 3D', 'Projection test in a 3D exhibition room') },
     ],
   },
   {
@@ -212,16 +220,15 @@ export const projects = [
     tools: 'Figma',
     credits: [],
     media: [
-      // ordre : le produit en main, l'écran phare, le parcours ouvert, le système (grille, typo, couleurs, images),
-      // puis les écrans fermés et leur parcours
+      // contexte (en main, le parcours ouvert), puis le système (grille, images, typo, couleurs), puis le parcours fermé
       { src: 'duo-news/main-prototype.webp', alt: T('Le journal Duo News tenu en main, iPhone Duo fermé', 'Duo News held in hand, iPhone Duo closed') },
-      { src: 'duo-news/ouvert-une.webp', alt: T('Le journal ouvert en double page', 'The newspaper open as a double page') },
       { src: 'duo-news/duo-news-ouvert.mp4', poster: 'duo-news/duo-news-ouvert-poster.webp', alt: T('Parcours du journal ouvert, de l’accueil à la fin de l’édition', 'Open newspaper flow, from home to the end of the edition') },
+      { src: 'duo-news/ouvert-une.webp', alt: T('Le journal ouvert en double page', 'The newspaper open as a double page'), layout: 'stack' },
+      { src: 'duo-news/ferme-trio.webp', alt: T('Trois pages du journal fermé', 'Three pages of the closed newspaper'), layout: 'stack' },
       { src: 'duo-news/la-grille.webp', alt: T('La grille : 6 colonnes, ligne de base de 16 px', 'The grid: 6 columns, 16 px baseline') },
-      { src: 'duo-news/les-styles-de-texte.webp', alt: T('Les styles de texte : trois familles, onze styles', 'Text styles: three typefaces, eleven styles') },
-      { src: 'duo-news/les-couleurs.webp', alt: T('Les couleurs : trois thèmes, clair, confort et sombre', 'Colours: three themes, light, comfort and dark') },
       { src: 'duo-news/traitement-des-images.webp', alt: T('Le traitement des images en trichromie', 'Image processing in trichromy') },
-      { src: 'duo-news/ferme-trio.webp', alt: T('Trois pages du journal fermé', 'Three pages of the closed newspaper') },
+      { src: 'duo-news/les-styles-de-texte.webp', alt: T('Les styles de texte : trois familles, onze styles', 'Text styles: three typefaces, eleven styles'), layout: 'stack' },
+      { src: 'duo-news/les-couleurs.webp', alt: T('Les couleurs : trois thèmes, clair, confort et sombre', 'Colours: three themes, light, comfort and dark'), layout: 'stack' },
       { src: 'duo-news/duo-news-ferme.mp4', poster: 'duo-news/duo-news-ferme-poster.webp', alt: T('Parcours du journal fermé, page par page', 'Closed newspaper flow, page by page') },
     ],
   },
@@ -267,10 +274,10 @@ export const projects = [
       // ordre de l'expérience : l'accueil, le récit, le disque et ses images, une image en volume, la galerie
       { src: 'voyageur-1/accueil.webp', alt: T('L’accueil du site', 'The site’s home screen') },
       { src: 'voyageur-1/voyageur-recit.mp4', poster: 'voyageur-1/voyageur-recit-poster.webp', alt: T('Le récit en photos d’archives NASA', 'The story in NASA archive photos') },
-      { src: 'voyageur-1/disque.webp', alt: T('Le disque d’or entouré de ses images', 'The Golden Record surrounded by its images') },
+      { src: 'voyageur-1/recit-2.webp', alt: T('Le récit : le disque fixé sur la sonde', 'The story: the record fixed to the probe'), layout: 'stack' },
+      { src: 'voyageur-1/disque.webp', alt: T('Le disque d’or entouré de ses images', 'The Golden Record surrounded by its images'), layout: 'stack' },
       { src: 'voyageur-1/voyageur-disque.mp4', poster: 'voyageur-1/voyageur-disque-poster.webp', alt: T('Le disque tourne au glisser', 'Dragging spins the record') },
       { src: 'voyageur-1/voyageur-volume.mp4', poster: 'voyageur-1/voyageur-volume-poster.webp', alt: T('Une image se reforme en volume, puis tourne', 'An image re-forms in volume, then turns') },
-      { src: 'voyageur-1/volume.webp', alt: T('Une image ouverte en volume', 'An image opened in volume') },
       { src: 'voyageur-1/galerie.webp', alt: T('La galerie des 116 images', 'The gallery of 116 images') },
     ],
   },
@@ -304,11 +311,13 @@ export const projects = [
     credits: [],
     link: { label: T('Lire l’article', 'Read the paper'), href: 'https://indd.adobe.com/view/dc3c7dff-f28e-4969-9c00-527dc66c4321' },
     media: [
-      { src: 'mondes-immerges/011.webp', alt: T('Couverture du livre Mondes Immergés', 'Cover of Mondes Immergés') },
-      { src: 'mondes-immerges/013.webp', alt: T('Page d’ouverture', 'Opening spread') },
+      // contexte (le livre en main), puis les expérimentations, puis le site et le livre à feuilleter
       { src: 'mondes-immerges/012.webp', alt: T('Expérimentation en volume', 'Volume experiment') },
+      { src: 'mondes-immerges/013.webp', alt: T('Page d’ouverture', 'Opening spread') },
+      { src: 'mondes-immerges/009.webp', alt: T('Aurores boréales transformées en particules', 'Northern lights turned into particles'), layout: 'stack' },
+      { src: 'mondes-immerges/005.webp', alt: T('Motif génératif', 'Generative pattern'), layout: 'stack' },
       { src: 'mondes-immerges/010.webp', alt: T('Expérimentation graphique', 'Graphic experiment') },
-      { src: 'mondes-immerges/009.webp', alt: T('Aurores boréales transformées en particules', 'Northern lights turned into particles') },
+      { src: 'mondes-immerges/accueil-fond.mp4', poster: 'mondes-immerges/accueil-fond-poster.webp', alt: T('Le fond animé du site : la Terre sous l’eau', 'The site’s animated background: Earth under water') },
       { book: 'mondes-immerges/livre.pdf', poster: 'mondes-immerges/011.webp', alt: T('Le livre Mondes Immergés à feuilleter', 'The Mondes Immergés book, to leaf through') },
     ],
   },

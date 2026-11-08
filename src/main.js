@@ -791,3 +791,10 @@ addEventListener('popstate', () => { if (location.pathname !== shownPath) locati
 
 
 initBooks()
+
+// vidéos des fiches : chargées et lues seulement à l'écran (ou juste avant d'y entrer), en pause sinon ; fiche fermée
+// (display: none) = hors écran
+const lazyVideos = new IntersectionObserver((entries) => entries.forEach(({ target: v, isIntersecting }) => {
+  if (isIntersecting) { v.preload = 'auto'; v.play().catch(() => {}) } else v.pause()
+}), { rootMargin: '0px 50% 0px 50%' })
+document.querySelectorAll('video[data-lazy]').forEach((v) => lazyVideos.observe(v))

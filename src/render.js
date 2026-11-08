@@ -86,7 +86,6 @@ export function render(lang) {
   const fiche = (p, i) => {
     const credits = [...(p.credits || []), ...(p.coverCredit ? [p.coverCredit] : [])]
     const next = projects[(i + 1) % projects.length]
-    // petites images (moins de 700 px de large) regroupées par deux, l'une sur l'autre
     // images des fiches : chaque image prend le format le plus proche d'un jeu fixe, du 16:9 (1920 × 1080, le plus
     // large) au 9:16 (smartphone, le plus haut) ; elle est recadrée dedans (object-fit: cover), jamais déformée
     const FORMATS = [16 / 9, 3 / 2, 4 / 3, 1, 4 / 5, 2 / 3, 9 / 16]
@@ -99,21 +98,26 @@ export function render(lang) {
         <div class="book__load" aria-hidden="true"><span class="book__bar"><i></i></span><span class="lbl">${lang === 'fr' ? 'Ouverture du livre' : 'Opening the book'}</span></div>
         <div class="book__mount"></div></figure>`
       const [w, h] = sizes[x.src] || [1200, 800]
+      // vidéo : lue seulement quand elle est à l'écran (main.js, data-lazy), sinon en pause
       const el = /\.mp4$/.test(x.src)
-        ? `<video src="${m(x.src)}"${x.poster ? ` poster="${m(x.poster)}"` : ''} width="${w}" height="${h}" autoplay muted loop playsinline preload="metadata" aria-label="${esc(t(x.alt))}"></video>`
+        ? `<video src="${m(x.src)}"${x.poster ? ` poster="${m(x.poster)}"` : ''} width="${w}" height="${h}" muted loop playsinline preload="none" data-lazy aria-label="${esc(t(x.alt))}"></video>`
         : `<img src="${m(x.src)}" alt="${esc(t(x.alt))}" width="${w}" height="${h}" loading="lazy" decoding="async">`
-      return `<figure style="--r:${format(w, h).toFixed(4)}">${el}</figure>`
+      return `<figure style="--r:${ratio(x).toFixed(4)}">${el}</figure>`
     }
-    const small = (x) => (sizes[x.src]?.[0] || 1200) < 700
+    const ratio = (x) => x.ratio || format(...(sizes[x.src] || [1200, 800]))
+    // cases : grande (un média sur toute la hauteur) ou double (deux médias layout: 'stack' l'un sur l'autre, 16:9 à 4:3)
     const media = []
     for (let k = 0; k < p.media.length; k++) {
       const a = p.media[k], b = p.media[k + 1]
-      if (small(a) && b && small(b)) { media.push(`<div class="duo">${fig(a)}${fig(b)}</div>`); k++ } else media.push(fig(a))
+      if (a.layout === 'stack' && b?.layout === 'stack') {
+        const r = Math.min(16 / 9, Math.max(4 / 3, ratio(a), ratio(b)))
+        media.push(`<div class="duo" style="--r:${r.toFixed(4)}">${fig(a)}${fig(b)}</div>`); k++
+      } else media.push(fig(a))
     }
     // un seul texte explicatif (sans rubriques) : intention et contexte, captation et traitement, mise en scène et limites
     const body = [[p.intent, p.context], [p.capture, p.processing], [p.staging, p.learned]]
       .map((g) => g.filter((v) => v && !v.todo).map((v) => esc(t(v))).join(' ')).filter(Boolean)
-    // fiche technique : étiquettes alignées, séparateur « // »
+    // fiche technique : étiquettes alignées, sans séparateur
     const info = (label, values, todo = false) => (values.length ? `<div class="fiche__info${todo ? ' todo' : ''}"><dt>${esc(t(label))}</dt>${values.map((v) => `<dd>${v}</dd>`).join('')}</div>` : '')
     const infos = [
       info({ fr: 'Milieu', en: 'Setting' }, [esc(t(p.milieu))]),

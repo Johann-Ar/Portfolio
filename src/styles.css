@@ -465,10 +465,9 @@ main { position: relative; }   /* pas de contexte d'empilement : le mot de l'acc
 .fiche__body p { font: 500 1.1rem/1.5 var(--font-text); color: var(--ink-86); }
 .fiche__body p + p { margin-top: 0.9em; }
 .fiche__infos { margin: 30px 0 0; display: grid; gap: 6px; text-transform: uppercase; font: 500 0.82rem/1.45 var(--font-text); letter-spacing: 0.03em; color: var(--ink-86); }
-.fiche__info { display: grid; grid-template-columns: 100px minmax(0, 1fr); column-gap: 0; }
+.fiche__info { display: grid; grid-template-columns: 100px minmax(0, 1fr); column-gap: 0; }   /* pas de séparateur « // » (choix de Johann) */
 .fiche__info dt { grid-column: 1; font-weight: 700; color: var(--ink); }
 .fiche__info dd { grid-column: 2; margin: 0; }
-.fiche__info dd::before { content: '//'; font-weight: 800; margin-right: 8px; color: var(--ink); }
 /* lien « ouvrir le projet » : capitales, un aplat glisse de la gauche au survol */
 .fiche__open { position: relative; isolation: isolate; display: inline-block; overflow: hidden; margin: 30px 0 0 -0.3em; padding: 0 0.3em; font: 800 1.1rem/1.6 var(--font-text); text-transform: uppercase; color: var(--ink); text-decoration: none; transition: color 0.2s cubic-bezier(0.75, 0, 0, 1); }
 .fiche__open::before { content: ''; position: absolute; inset: 0; z-index: -1; background: var(--ink); transform: translateX(-102%); transition: transform 0.2s cubic-bezier(0.75, 0, 0, 1); }
@@ -481,17 +480,17 @@ main { position: relative; }   /* pas de contexte d'empilement : le mot de l'acc
 .fiche__next .disp { font-size: clamp(2.2rem, 4vw, 3.6rem); max-width: 8.5em; text-wrap: balance; overflow-wrap: normal; word-break: normal; hyphens: manual; }   /* « Photographique / Volume » : à la ligne */
 
 /* grand écran : une seule bande horizontale (défilement vertical → horizontal, main.js), marge de 120 px tout autour ;
-   texte en colonne de 500 px ; 240 px jusqu'à la première image ; toutes les images à la même hauteur (écran − 240 px),
-   leur largeur suit leur format ; 30 px entre elles */
+   texte en colonne de 500 px ; 240 px jusqu'à la première image ; rangée de médias à 82 % de la hauteur d'écran, centrée ;
+   grande case : la hauteur entière, largeur selon le format ; case double : deux médias l'un sur l'autre ; 30 px entre tout */
 @media (min-width: 769px) {
   .fiche { overflow: hidden; }
   .fiche__head { position: absolute; top: 0; left: 0; right: 0; padding: 30px var(--edge-r) 0; pointer-events: none; }
   .fiche__head > * { pointer-events: auto; }
   .fiche__row { display: flex; align-items: center; width: max-content; height: 100svh; padding: 120px; will-change: transform; }
   .fiche__text { flex: 0 0 500px; align-self: center; }
-  .fiche__media { flex: none; display: flex; align-items: center; gap: 30px; height: 100%; padding-left: 120px; }
+  .fiche__media { flex: none; display: flex; align-items: center; gap: 30px; height: 82svh; align-self: center; padding-left: 120px; }
   .fiche__media > figure { flex: none; height: 100%; width: auto; aspect-ratio: var(--r); }
-  .duo { flex: none; display: flex; flex-direction: column; gap: 30px; height: 100%; width: 50svh; }
+  .duo { flex: none; display: flex; flex-direction: column; gap: 30px; height: 100%; width: calc(var(--r) * (82svh - 30px) / 2); }
   .duo figure { flex: 1; min-height: 0; }
   .fiche__next { flex: none; align-self: center; padding-left: 120px; }
 }
