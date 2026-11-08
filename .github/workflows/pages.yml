@@ -6,7 +6,7 @@ name: GitHub Pages
 
 on:
   push:
-    branches: [claude/focused-hypatia-waqdp9]
+    branches: [main]
   workflow_dispatch:
 
 permissions:
