@@ -94,7 +94,7 @@ export function render(lang) {
     // vidéo (.mp4) : lecture muette en boucle, comme une image animée ; x.poster sert d'image d'attente
     const fig = (x) => {
       // livre PDF feuilletable en 3D (src/book.js) : la couverture et un chargeur en attendant les pages
-      if (x.book) return `<figure class="book" style="--r:1.5" data-book="${m(x.book)}" data-vendor="${root}vendor/flip-book/" aria-label="${esc(t(x.alt))}">
+      if (x.book) return `<figure class="book" style="--r:1.5" data-book="${m(x.book)}" aria-label="${esc(t(x.alt))}">
         <img class="book__poster" src="${m(x.poster)}" alt="" loading="lazy" decoding="async">
         <div class="book__load" aria-hidden="true"><span class="book__bar"><i></i></span><span class="lbl">${lang === 'fr' ? 'Ouverture du livre' : 'Opening the book'}</span></div>
         <div class="book__mount"></div></figure>`

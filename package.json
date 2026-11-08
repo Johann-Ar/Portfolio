@@ -13,6 +13,8 @@
     "vite": "^7.3.7"
   },
   "dependencies": {
-    "lenis": "^1.3.11"
+    "lenis": "^1.3.11",
+    "page-flip": "^2.0.7",
+    "pdfjs-dist": "^4.10.38"
   }
 }
