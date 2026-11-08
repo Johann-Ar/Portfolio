@@ -91,7 +91,14 @@ export function render(lang) {
     // large) au 9:16 (smartphone, le plus haut) ; elle est recadrée dedans (object-fit: cover), jamais déformée
     const FORMATS = [16 / 9, 3 / 2, 4 / 3, 1, 4 / 5, 2 / 3, 9 / 16]
     const format = (w, h) => FORMATS.reduce((best, f) => (Math.abs(Math.log(f * h / w)) < Math.abs(Math.log(best * h / w)) ? f : best))
-    const fig = (x) => { const [w, h] = sizes[x.src] || [1200, 800]; return `<figure style="--r:${format(w, h).toFixed(4)}"><img src="${m(x.src)}" alt="${esc(t(x.alt))}" width="${w}" height="${h}" loading="lazy" decoding="async"></figure>` }
+    // vidéo (.mp4) : lecture muette en boucle, comme une image animée ; x.poster sert d'image d'attente
+    const fig = (x) => {
+      const [w, h] = sizes[x.src] || [1200, 800]
+      const el = /\.mp4$/.test(x.src)
+        ? `<video src="${m(x.src)}"${x.poster ? ` poster="${m(x.poster)}"` : ''} width="${w}" height="${h}" autoplay muted loop playsinline preload="metadata" aria-label="${esc(t(x.alt))}"></video>`
+        : `<img src="${m(x.src)}" alt="${esc(t(x.alt))}" width="${w}" height="${h}" loading="lazy" decoding="async">`
+      return `<figure style="--r:${format(w, h).toFixed(4)}">${el}</figure>`
+    }
     const small = (x) => (sizes[x.src]?.[0] || 1200) < 700
     const media = []
     for (let k = 0; k < p.media.length; k++) {
