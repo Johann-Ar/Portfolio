@@ -68,7 +68,7 @@ export function render(lang) {
   const card = (c) => {
     const tag = c.href ? 'a' : 'div', href = c.href ? ` href="${c.href}"` : ''
     const media = c.image
-      ? `<${tag} class="card__media${c.overlay ? ' card__media--badge' : ''}"${href} data-gl="card" data-cell="6"${c.color ? ' data-color' : ''}${c.text ? ` data-text="${esc(c.text)}"` : ''} data-radius="26"${c.href ? ` aria-label="${esc(t(ui.open))} : ${esc(c.title)}"` : ' aria-hidden="true"'}><img src="${m(c.image)}" alt="" decoding="async" loading="lazy">${c.overlay ? `<span class="disp">${esc(c.badge || '')}</span>` : ''}${c.label ? `<span class="sr">${esc(c.label)}</span>` : ''}</${tag}>`
+      ? `<${tag} class="card__media${c.overlay ? ' card__media--badge' : ''}"${href} data-gl="card" data-cell="6"${c.color ? ' data-color' : ''}${c.text ? ` data-text="${esc(c.text)}"` : ''} data-radius="26"${c.href ? ` aria-label="${esc(t(ui.open))} : ${esc(c.title)}"` : ' aria-hidden="true"'}>${c.imageMobile ? `<picture><source media="(max-width: 760px)" srcset="${m(c.imageMobile)}">` : ''}<img src="${m(c.image)}" alt="" decoding="async" loading="lazy">${c.imageMobile ? '</picture>' : ''}${c.overlay ? `<span class="disp">${esc(c.badge || '')}</span>` : ''}${c.label ? `<span class="sr">${esc(c.label)}</span>` : ''}</${tag}>`
       : `<div class="card__media card__media--text"><span class="disp">${esc(c.badge || '')}</span></div>`
     return `
       <article class="card${c.todo ? ' todo' : ''}" id="${c.id}" aria-labelledby="${c.id}-t">
@@ -193,7 +193,7 @@ export function render(lang) {
       <h2 class="disp" id="proj-t" data-sw>${seq(lang === 'fr' ? 'Projets choisis' : 'Selected work')}</h2>
       <p class="lbl sec-head__sub" data-sw>${seq(t(workIntro))}</p>
     </header>
-    ${rail(selected.map((p, i) => card({ id: `projet-${p.slug}`, href: `#p-${p.slug}`, image: p.cover, title: p.title, genre: t(p.genre), credit: p.coverCredit && t(p.coverCredit) })), lang === 'fr' ? 'Projets, défilement horizontal' : 'Projects, horizontal scroll')}
+    ${rail(selected.map((p, i) => card({ id: `projet-${p.slug}`, href: `#p-${p.slug}`, image: p.cover, imageMobile: p.coverMobile, title: p.title, genre: t(p.genre), credit: p.coverCredit && t(p.coverCredit) })), lang === 'fr' ? 'Projets, défilement horizontal' : 'Projects, horizontal scroll')}
   </section>
 
   <section class="work work--research" id="recherche" aria-labelledby="research-t">
