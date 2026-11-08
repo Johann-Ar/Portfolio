@@ -103,7 +103,7 @@ function seoFiles() {
 }
 
 /** 404 : l'hébergeur la sert à n'importe quelle adresse, ses liens doivent donc être absolus, et commencer par le dossier
- *  où le site est publié : « / » sur Vercel, « /Holosene/ » sur GitHub Pages (BASE_PATH, fixé par le workflow pages.yml). */
+ *  où le site est publié : « / » sur Vercel, « /Portfolio/ » sur GitHub Pages (BASE_PATH, fixé par le workflow pages.yml). */
 function absolute404() {
   const basePath = (process.env.BASE_PATH || new URL(SITE_URL).pathname).replace(/\/?$/, '/')
   return {
