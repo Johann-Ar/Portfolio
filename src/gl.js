@@ -42,6 +42,7 @@ uniform sampler2D uMask;
 uniform vec2 uRes;      // taille de la vue (px CSS)
 uniform vec2 uOrigin;   // coin bas gauche de la vue sur la toile (px écran)
 uniform vec2 uImg;      // taille de l'image source
+uniform vec2 uPos;      // cadrage de l'image (0 à 1, comme object-position ; 0,5 = centré), data-pos sur la vignette
 uniform float uDpr;
 uniform float uCell;    // pas de la trame (px CSS)
 uniform float uReveal;  // 0 : points absents, 1 : trame complète
@@ -73,7 +74,7 @@ uniform sampler2D uFlow; // roue animée « flux » (texture 1D du kit, partagé
 vec2 cover(vec2 p) {
   float s = max(uRes.x / uImg.x, uRes.y / uImg.y);
   vec2 size = uImg * s;
-  return clamp((p - (uRes - size) * 0.5) / size, 0.001, 0.999);
+  return clamp((p - (uRes - size) * uPos) / size, 0.001, 0.999);
 }
 float hash(vec2 c) { return fract(sin(dot(c, vec2(127.1, 311.7))) * 43758.5453); }
 float lum(vec3 c) { return dot(c, vec3(0.2126, 0.7152, 0.0722)); }
@@ -433,7 +434,7 @@ export function createGL(canvas, { reduced }) {
   gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer())
   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW)
   const aLoc = gl.getAttribLocation(prog, 'a'); gl.enableVertexAttribArray(aLoc); gl.vertexAttribPointer(aLoc, 2, gl.FLOAT, false, 0, 0)
-  const U = {}; for (const n of ['uTex', 'uMask', 'uRes', 'uOrigin', 'uImg', 'uDpr', 'uCell', 'uReveal', 'uFade', 'uHasMask', 'uFloor', 'uRadius', 'uLens', 'uLensO', 'uSoft', 'uGlass', 'uEye', 'uMarkXf', 'uBg', 'uMaskB', 'uCanvas', 'uClip', 'uCardBg', 'uColor', 'uScr', 'uTime', 'uText', 'uHasText', 'uMono', 'uInk', 'uEdgeFloor', 'uFlow', 'uHal']) U[n] = gl.getUniformLocation(prog, n)
+  const U = {}; for (const n of ['uTex', 'uMask', 'uRes', 'uOrigin', 'uImg', 'uPos', 'uDpr', 'uCell', 'uReveal', 'uFade', 'uHasMask', 'uFloor', 'uRadius', 'uLens', 'uLensO', 'uSoft', 'uGlass', 'uEye', 'uMarkXf', 'uBg', 'uMaskB', 'uCanvas', 'uClip', 'uCardBg', 'uColor', 'uScr', 'uTime', 'uText', 'uHasText', 'uMono', 'uInk', 'uEdgeFloor', 'uFlow', 'uHal']) U[n] = gl.getUniformLocation(prog, n)
   gl.uniform1i(U.uTex, 0); gl.uniform1i(U.uMask, 1); gl.uniform1i(U.uText, 3); gl.uniform1i(U.uMaskB, 5)
   gl.uniform1f(U.uHal, FX.halation)
   gl.uniform4f(U.uMono, MONO_W, MONO_O[0], MONO_O[1], 0)
@@ -541,7 +542,7 @@ export function createGL(canvas, { reduced }) {
   const views = [...document.querySelectorAll('[data-gl]')].map((el) => {
     const v = { el, tex: newTex(), img: null, video: el.querySelector('video'), ready: false, seen: 0, glass: 0, color: el.hasAttribute('data-color'), text: el.dataset.text || '', textTex: null, textKey: '',
       mark: el.dataset.gl === 'mark', cell: +el.dataset.cell || 7,
-      radius: +el.dataset.radius || 0, clip: el.closest('[data-clip]'), fade: el.dataset.gl === 'panel', mask: null, maskKey: '' }
+      radius: +el.dataset.radius || 0, pos: (el.dataset.pos || '0.5 0.5').split(' ').map(Number), clip: el.closest('[data-clip]'), fade: el.dataset.gl === 'panel', mask: null, maskKey: '' }
     const src = v.video || el.querySelector('img')
     // envoi au GPU : en file, une image par image affichée (pas de saccade), le logo de l'accueil d'abord ; pendant le
     // chargeur et l'intro, seul le logo (les vignettes, plus bas, attendent la fin de l'intro)
@@ -902,7 +903,7 @@ export function createGL(canvas, { reduced }) {
       gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, v.mask || v.tex)
       if (v.maskB) { gl.activeTexture(gl.TEXTURE5); gl.bindTexture(gl.TEXTURE_2D, v.maskB) }
       gl.uniform2f(U.uCanvas, canvas.width, canvas.height)
-      gl.uniform2f(U.uRes, w, h); gl.uniform2f(U.uOrigin, x0, y0); gl.uniform2f(U.uImg, v.img[0], v.img[1])
+      gl.uniform2f(U.uRes, w, h); gl.uniform2f(U.uOrigin, x0, y0); gl.uniform2f(U.uImg, v.img[0], v.img[1]); gl.uniform2f(U.uPos, v.pos[0], v.pos[1])
       gl.uniform1f(U.uEdgeFloor, theme.bg[0] + theme.bg[1] + theme.bg[2] > 1.5 ? 1 : 0.12)   // clair : pas d'effacement (flou CSS aux bords)
       gl.uniform1f(U.uDpr, dpr); gl.uniform1f(U.uCell, v.mark ? 6 : v.cell * (W >= 769 ? 1 / 1.15 : 1) * Math.min(1, Math.max(0.45, W / 1100)) * cellScale   /* PC : un cran plus fin (÷ 1,15) ; trame proportionnelle à la largeur d'écran (mobile : 0,45) */)
       gl.uniform1f(U.uReveal, reveal); gl.uniform1f(U.uFade, v.fade ? 1 : 0); gl.uniform1f(U.uHasMask, v.mark ? 1 : 0)

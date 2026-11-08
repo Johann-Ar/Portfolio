@@ -68,7 +68,7 @@ export function render(lang) {
   const card = (c) => {
     const tag = c.href ? 'a' : 'div', href = c.href ? ` href="${c.href}"` : ''
     const media = c.image
-      ? `<${tag} class="card__media${c.overlay ? ' card__media--badge' : ''}"${href} data-gl="card" data-cell="6"${c.color ? ' data-color' : ''}${c.text ? ` data-text="${esc(c.text)}"` : ''} data-radius="26"${c.href ? ` aria-label="${esc(t(ui.open))} : ${esc(c.title)}"` : ' aria-hidden="true"'}>${c.imageMobile ? `<picture><source media="(max-width: 760px)" srcset="${m(c.imageMobile)}">` : ''}<img src="${m(c.image)}" alt="" decoding="async" loading="lazy">${c.imageMobile ? '</picture>' : ''}${c.overlay ? `<span class="disp">${esc(c.badge || '')}</span>` : ''}${c.label ? `<span class="sr">${esc(c.label)}</span>` : ''}</${tag}>`
+      ? `<${tag} class="card__media${c.overlay ? ' card__media--badge' : ''}"${href} data-gl="card" data-cell="6"${c.color ? ' data-color' : ''}${c.text ? ` data-text="${esc(c.text)}"` : ''} data-radius="26"${c.pos ? ` data-pos="${c.pos[0]} ${c.pos[1]}" style="--pos:${c.pos[0] * 100}% ${c.pos[1] * 100}%"` : ''}${c.href ? ` aria-label="${esc(t(ui.open))} : ${esc(c.title)}"` : ' aria-hidden="true"'}>${c.imageMobile ? `<picture><source media="(max-width: 760px)" srcset="${m(c.imageMobile)}">` : ''}<img src="${m(c.image)}" alt="" decoding="async" loading="lazy">${c.imageMobile ? '</picture>' : ''}${c.overlay ? `<span class="disp">${esc(c.badge || '')}</span>` : ''}${c.label ? `<span class="sr">${esc(c.label)}</span>` : ''}</${tag}>`
       : `<div class="card__media card__media--text"><span class="disp">${esc(c.badge || '')}</span></div>`
     return `
       <article class="card${c.todo ? ' todo' : ''}" id="${c.id}" aria-labelledby="${c.id}-t">
@@ -93,6 +93,11 @@ export function render(lang) {
     const format = (w, h) => FORMATS.reduce((best, f) => (Math.abs(Math.log(f * h / w)) < Math.abs(Math.log(best * h / w)) ? f : best))
     // vidéo (.mp4) : lecture muette en boucle, comme une image animée ; x.poster sert d'image d'attente
     const fig = (x) => {
+      // livre PDF feuilletable en 3D (src/book.js) : la couverture et un chargeur en attendant les pages
+      if (x.book) return `<figure class="book" style="--r:1.5" data-book="${m(x.book)}" data-vendor="${root}vendor/flip-book/" aria-label="${esc(t(x.alt))}">
+        <img class="book__poster" src="${m(x.poster)}" alt="" loading="lazy" decoding="async">
+        <div class="book__load" aria-hidden="true"><span class="book__bar"><i></i></span><span class="lbl">${lang === 'fr' ? 'Ouverture du livre' : 'Opening the book'}</span></div>
+        <div class="book__mount"></div></figure>`
       const [w, h] = sizes[x.src] || [1200, 800]
       const el = /\.mp4$/.test(x.src)
         ? `<video src="${m(x.src)}"${x.poster ? ` poster="${m(x.poster)}"` : ''} width="${w}" height="${h}" autoplay muted loop playsinline preload="metadata" aria-label="${esc(t(x.alt))}"></video>`
@@ -201,7 +206,7 @@ export function render(lang) {
       <h2 class="disp" id="research-t" data-sw>${seq(t(ui.research))}</h2>
       <p class="lbl sec-head__sub" data-sw>${seq(t(research.intro))}</p>
     </header>
-    ${rail(research.items.map((r, i) => card({ id: `recherche-${r.slug || i + 1}`, href: r.href, image: t(r.image), text: r.label && t(r.label), badge: r.when && t(r.when), title: t(r.title), genre: t(r.kind), todo: r.todo })), lang === 'fr' ? 'Recherche, défilement horizontal' : 'Research, horizontal scroll')}
+    ${rail(research.items.map((r, i) => card({ id: `recherche-${r.slug || i + 1}`, href: r.href, image: t(r.image), pos: r.pos, text: r.label && t(r.label), badge: r.when && t(r.when), title: t(r.title), genre: t(r.kind), todo: r.todo })), lang === 'fr' ? 'Recherche, défilement horizontal' : 'Research, horizontal scroll')}
   </section>
 
   <section class="about wrap" id="a-propos" aria-labelledby="about-t">

@@ -167,14 +167,6 @@
 2000,
 1333
 ],
-"duo-news/wireframe.webp": [
-2400,
-1350
-],
-"duo-news/references-iconographiques.webp": [
-2400,
-1350
-],
 "duo-news/la-grille.webp": [
 2400,
 1350
@@ -198,5 +190,45 @@
 "duo-news/duo-news-ferme.mp4": [
 1080,
 1350
+],
+"voyageur-1/vignette.webp": [
+1429,
+863
+],
+"voyageur-1/vignette-mobile.webp": [
+1200,
+1200
+],
+"voyageur-1/accueil.webp": [
+2000,
+1250
+],
+"voyageur-1/volume.webp": [
+2000,
+1250
+],
+"voyageur-1/disque.webp": [
+1920,
+1080
+],
+"voyageur-1/recit.webp": [
+1920,
+1080
+],
+"voyageur-1/point-bleu.webp": [
+1920,
+1080
+],
+"voyageur-1/galerie.webp": [
+1920,
+1080
+],
+"voyageur-1/voyageur-disque.mp4": [
+1920,
+1080
+],
+"voyageur-1/voyageur-volume.mp4": [
+1920,
+1080
 ]
 }
