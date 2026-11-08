@@ -183,8 +183,8 @@ main { position: relative; }   /* pas de contexte d'empilement : le mot de l'acc
 .foot, main > section:not(.hero) { position: relative; z-index: 1; }
 [data-gl] { position: relative; overflow: hidden; display: block; }
 .gl-card { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }   /* écran tactile : image propre de la vignette (gl.js) */
-[data-gl] > img, [data-gl] > video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transition: opacity var(--dur-slow); }
-.has-gl [data-gl] > img, .has-gl [data-gl] > video { opacity: 0; }
+[data-gl] > img, [data-gl] > picture > img, [data-gl] > video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transition: opacity var(--dur-slow); }
+.has-gl [data-gl] > img, .has-gl [data-gl] > picture > img, .has-gl [data-gl] > video { opacity: 0; }
 
 /* apparitions au défilement (seulement si le script tourne), avec la lueur irisée */
 .js [data-reveal] { opacity: 0; filter: blur(8px); transform: translateY(26px); transition: opacity var(--dur-scene) var(--ease-flow), transform var(--dur-scene) var(--ease-flow), filter var(--dur-scene) var(--ease-flow); transition-delay: var(--d, 0ms); }
@@ -331,7 +331,7 @@ main { position: relative; }   /* pas de contexte d'empilement : le mot de l'acc
 @media (min-width: 761px) { .card { width: calc(var(--track-w, 100vw) / 2 - var(--edge-l) - var(--rail-gap) / 2); } }
 .card { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }   /* appui long : ni menu, ni sélection (la vignette passe en couleur) */
 .card__media { aspect-ratio: 16 / 10; border-radius: 26px; background: var(--card-bg); }
-.card__media > img { border-radius: 26px; }
+.card__media > img, .card__media > picture > img { border-radius: 26px; }
 .has-gl .card__media { background: none; }
 .card__line { display: grid; justify-items: start; gap: 6px; }
 .card__line a, .card__line > span { display: grid; justify-items: start; gap: 6px; text-decoration: none; color: inherit; }   /* le genre passe toujours à la ligne, à la marge */

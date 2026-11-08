@@ -121,7 +121,7 @@ export const projects = [
     intent: TODO('l’intention du projet en une phrase', 'the project’s intent in one sentence'),
     context: T(
       'Des vidéos de grands fonds deviennent des volumes à parcourir, pour approcher une créature abyssale comme une sculpture.',
-      'Deep-sea footage turned into volumes you can walk around, to approach a deep-sea creature like a sculpture.',
+      'Deep-sea footage turned into volumes to walk around, to approach a deep-sea creature like a sculpture.',
     ),
     capture: T('Pas de captation propre : vidéos de submersibles du Schmidt Ocean Institute.', 'No own capture: submersible footage from the Schmidt Ocean Institute.'),
     processing: T(
@@ -191,13 +191,14 @@ export const projects = [
     title: 'Duo News',
     year: '2026',
     milieu: T('Presse numérique', 'Digital press'),
-    cover: 'duo-news/01-couverture.webp',
+    cover: 'duo-news/vignette.webp',
+    coverMobile: 'duo-news/vignette-mobile.webp',   // vignette carrée (mobile) : l'image de couverture seule
     spec: [
       [T('Support', 'Device'), T('iPhone Duo, écran pliable : ouvert en double page, fermé en une page', 'iPhone Duo, foldable screen: open as a double page, closed as a single page')],
       [T('Contenu', 'Content'), T('Sources RSS d’actualité locales, réglables', 'Local RSS news sources, user-selectable')],
       [T('Rendu', 'Output'), T('Prototype de démonstration Figma', 'Figma demo prototype')],
     ],
-    intent: T('Un journal qui rassemble tes sources RSS d’actualité, voulu pour l’iPhone Duo.', 'A newspaper that gathers your RSS news sources, designed for the iPhone Duo.'),
+    intent: T('Un journal qui rassemble les sources RSS d’actualité, voulu pour l’iPhone Duo.', 'A newspaper that gathers RSS news sources, designed for the iPhone Duo.'),
     context: T(
       'Projet de Master Design, Environnements numériques (Université de Strasbourg, octobre 2026). Une édition quotidienne qui reprend les codes de la presse papier.',
       'Master’s project in Design, Digital Environments (University of Strasbourg, October 2026). A daily edition that borrows the codes of print newspapers.',
@@ -210,13 +211,19 @@ export const projects = [
     tools: 'Figma',
     credits: [],
     media: [
-      { src: 'duo-news/02-ouvert-une.webp', alt: T('Le journal ouvert en double page', 'The newspaper open as a double page') },
+      // ordre : le produit en main, l'écran phare, la démarche (croquis, références), le système (grille, typo,
+      // couleurs, images), puis les écrans finaux et le parcours fermé
+      { src: 'duo-news/main-prototype.webp', alt: T('Le journal Duo News tenu en main, iPhone Duo fermé', 'Duo News held in hand, iPhone Duo closed') },
+      { src: 'duo-news/ouvert-une.webp', alt: T('Le journal ouvert en double page', 'The newspaper open as a double page') },
       { src: 'duo-news/duo-news-ouvert.mp4', poster: 'duo-news/duo-news-ouvert-poster.webp', alt: T('Parcours du journal ouvert, de l’accueil à la fin de l’édition', 'Open newspaper flow, from home to the end of the edition') },
-      { src: 'duo-news/03-ouvert-ferme.webp', alt: T('Accueil et réglages, ouvert et fermé', 'Home and settings, open and closed') },
-      { src: 'duo-news/04-ferme-trio.webp', alt: T('Trois pages du journal fermé', 'Three pages of the closed newspaper') },
+      { src: 'duo-news/wireframe.webp', alt: T('Wireframe dessiné à la main', 'Hand-drawn wireframe') },
+      { src: 'duo-news/references-iconographiques.webp', alt: T('Références iconographiques : unes de journaux anciens', 'Visual references: old newspaper front pages') },
+      { src: 'duo-news/la-grille.webp', alt: T('La grille : 6 colonnes, ligne de base de 16 px', 'The grid: 6 columns, 16 px baseline') },
+      { src: 'duo-news/les-styles-de-texte.webp', alt: T('Les styles de texte : trois familles, onze styles', 'Text styles: three typefaces, eleven styles') },
+      { src: 'duo-news/les-couleurs.webp', alt: T('Les couleurs : trois thèmes, clair, confort et sombre', 'Colours: three themes, light, comfort and dark') },
+      { src: 'duo-news/traitement-des-images.webp', alt: T('Le traitement des images en trichromie', 'Image processing in trichromy') },
+      { src: 'duo-news/ferme-trio.webp', alt: T('Trois pages du journal fermé', 'Three pages of the closed newspaper') },
       { src: 'duo-news/duo-news-ferme.mp4', poster: 'duo-news/duo-news-ferme-poster.webp', alt: T('Parcours du journal fermé, page par page', 'Closed newspaper flow, page by page') },
-      { src: 'duo-news/05-ouvert-pages.webp', alt: T('Pages 03 et 04 en double page', 'Pages 03 and 04 as a double page') },
-      { src: 'duo-news/06-reglages-fin.webp', alt: T('Réglages des sources et fin de l’édition', 'Source settings and end of the edition') },
     ],
   },
   {
