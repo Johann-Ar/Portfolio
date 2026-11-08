@@ -3,6 +3,7 @@ import './styles.css'
 import './logotype-animations.css'
 import { FLOW, updateFlow } from './flow.js'
 import Lenis from 'lenis'
+if (/^((?!chrome|android).)*safari/i.test(navigator.userAgent)) document.documentElement.classList.add('is-safari')
 import { createGL, loaderRadius } from './gl.js'
 import { createBackdrop } from './backdrop.js'
 import { IRIS } from './iris-config.js'

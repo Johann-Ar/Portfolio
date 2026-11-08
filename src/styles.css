@@ -85,6 +85,10 @@ a { color: inherit; }
    le chargement, la barre n'a que ses liens. Sans fondu d'opacité : pendant un fondu, le navigateur coupe le flou des
    calques puis le rétablit d'un coup (à-coup visible) */
 .js:not(.hero-done) .topbar .topbar__glass { visibility: hidden; }
+/* Safari : 5 flous empilés au-dessus d'une toile WebGL redessinée à chaque image coûtent trop (saccades au défilement) ;
+   un seul calque de flou moyen à la place */
+.is-safari .topbar__glass i:not(:nth-child(3)) { display: none; }
+.is-safari .topbar__glass i:nth-child(3) { -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); -webkit-mask: linear-gradient(to top, transparent, #000 70%); mask: linear-gradient(to top, transparent, #000 70%); }
 .topbar__glass i:nth-child(1) { -webkit-backdrop-filter: blur(1px); backdrop-filter: blur(1px); -webkit-mask: linear-gradient(to top, transparent 0%, #000 20%, #000 40%, transparent 60%); mask: linear-gradient(to top, transparent 0%, #000 20%, #000 40%, transparent 60%); }
 .topbar__glass i:nth-child(2) { -webkit-backdrop-filter: blur(2px); backdrop-filter: blur(2px); -webkit-mask: linear-gradient(to top, transparent 20%, #000 40%, #000 60%, transparent 80%); mask: linear-gradient(to top, transparent 20%, #000 40%, #000 60%, transparent 80%); }
 .topbar__glass i:nth-child(3) { -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); -webkit-mask: linear-gradient(to top, transparent 40%, #000 60%, #000 80%, transparent 100%); mask: linear-gradient(to top, transparent 40%, #000 60%, #000 80%, transparent 100%); }
