@@ -3,14 +3,36 @@ import './styles.css'
 import './logotype-animations.css'
 import { FLOW, updateFlow } from './flow.js'
 import Lenis from 'lenis'
+// diagnostic (dev) : ?off=gl,bg,blur,lenis,fx2 coupe un élément ; un compteur i/s s'affiche
+const OFF = new Set(import.meta.env.DEV ? (new URLSearchParams(location.search).get('off') ?? '').split(',').filter(Boolean) : [])
+if (import.meta.env.DEV && new URLSearchParams(location.search).has('off')) {
+  if (OFF.has('name')) document.head.append(Object.assign(document.createElement('style'), { textContent: '.hero__name{display:none!important}' }))
+  if (OFF.has('dock')) document.head.append(Object.assign(document.createElement('style'), { textContent: '.hero__dock{animation:none!important}' }))
+  if (OFF.has('words')) document.head.append(Object.assign(document.createElement('style'), { textContent: '.hero__line{display:none!important}' }))
+  if (OFF.has('heroall')) document.head.append(Object.assign(document.createElement('style'), { textContent: '.hero *{display:none!important}' }))
+  if (OFF.has('layer')) document.head.append(Object.assign(document.createElement('style'), { textContent: '.hero__name{will-change:transform}' }))
+  if (OFF.has('vmask')) document.head.append(Object.assign(document.createElement('style'), { textContent: '.side{--vmask:linear-gradient(#000,#000)!important}' }))
+  if (OFF.has('sideblur')) document.head.append(Object.assign(document.createElement('style'), { textContent: '.side{-webkit-backdrop-filter:none!important;backdrop-filter:none!important}' }))
+  if (OFF.has('sidemask')) document.head.append(Object.assign(document.createElement('style'), { textContent: '.side{-webkit-mask:none!important;mask:none!important}' }))
+  if (OFF.has('blur')) document.head.append(Object.assign(document.createElement('style'), { textContent: '*{-webkit-backdrop-filter:none!important;backdrop-filter:none!important}' }))
+  if (OFF.has('gl')) document.head.append(Object.assign(document.createElement('style'), { textContent: '.gl-canvas{display:none!important}' }))
+  if (OFF.has('bg')) document.head.append(Object.assign(document.createElement('style'), { textContent: '.bg-canvas{display:none!important}' }))
+  const el = Object.assign(document.createElement('div'), { style: 'position:fixed;left:8px;bottom:8px;z-index:99999;font:12px monospace;background:#000;color:#0f0;padding:4px 6px' })
+  addEventListener('DOMContentLoaded', () => document.body.append(el))
+  let n = 0, t0 = performance.now(), worst = 0, last = t0
+  const f = (t) => { worst = Math.max(worst, t - last); last = t; n++; if (t - t0 > 1000) { el.textContent = `${Math.round(n * 1000 / (t - t0))} i/s · pire ${Math.round(worst)} ms · off=${[...OFF]}`; n = 0; t0 = t; worst = 0 } requestAnimationFrame(f) }
+  requestAnimationFrame(f)
+}
 if (/^((?!chrome|android).)*safari/i.test(navigator.userAgent)) document.documentElement.classList.add('is-safari')
 import { createGL, loaderRadius } from './gl.js'
 import { createBackdrop } from './backdrop.js'
 import { IRIS } from './iris-config.js'
 import { startFxCss } from './fx-css.js'
+import { sweepCanvas } from './sweep-canvas.js'
 import { swapLanguage } from './lang-swap.js'
 import { HERO, updateHero } from './hero-progress.js'
 import { createLoader } from './loader.js'
+import { initBooks } from './book.js'
 
 const root = document.documentElement
 root.classList.add('js')
@@ -85,7 +107,7 @@ if (!reduced) root.classList.add('liquid')
 // un geste qui commence à l'horizontale appartient aux pistes : il ne fait pas défiler la page.
 let touchAxis = null
 addEventListener('touchstart', () => { touchAxis = null }, { passive: true, capture: true })
-const lenis = reduced ? null : new Lenis({ lerp: 0.1, overscroll: false,   // aux extrémités de la page : aucun défilement natif ni rebond
+const lenis = reduced || OFF.has('lenis') ? null : new Lenis({ lerp: 0.1, overscroll: false,   // aux extrémités de la page : aucun défilement natif ni rebond
   wheelMultiplier: 0.9, gestureOrientation: 'both',   // glisser à l'horizontale (pavé tactile) fait défiler la page comme à la verticale
   syncTouch: false,   // au doigt : défilement natif du téléphone (inertie, rebonds, vitesse : ceux du système)
   virtualScroll: (data) => {
@@ -396,9 +418,13 @@ addEventListener('load', () => rails.forEach((r) => r.measure()))
 let railT = performance.now()
 function workFrame(now = performance.now()) {
   const dt = Math.min(0.05, (now - railT) / 1000); railT = now
-  for (const r of rails) {
-    if (!r.setW) continue
-    if (r.track.scrollLeft) r.track.scrollLeft = 0
+  // lectures de mise en page de toutes les pistes d'abord : chaque piste écrit ensuite sa transformation, et une lecture
+  // après cette écriture forcerait un recalcul complet au milieu de l'image (une fois par piste)
+  const reads = rails.map((r) => r.setW ? { sl: r.track.scrollLeft, pr: !r.finite ? r.pin.getBoundingClientRect() : null } : null)
+  rails.forEach((r, ri) => {
+    if (!r.setW) return
+    const rd = reads[ri]
+    if (rd.sl) r.track.scrollLeft = 0
     // mobile (piste finie) : à l'arrêt, la piste se cale sur la carte la plus proche (toujours centrée) ; PC : défilement
     // libre, les vignettes restent là où le geste les a laissées
     if (r.finite && !r.isDown() && now - r.last > (r.wheel ? 260 : 140)) { r.target = Math.round(r.target / r.step) * r.step; r.wheel = false }
@@ -420,7 +446,7 @@ function workFrame(now = performance.now()) {
     // PC (défilement libre) : quand la piste est entièrement hors de l'écran, elle se recale d'un coup sur la carte la plus
     // proche (personne ne le voit) ; en y revenant, les vignettes sont en place dans la grille
     if (!r.finite && !r.isDown()) {
-      const pr = r.pin.getBoundingClientRect()
+      const pr = rd.pr
       if (pr.bottom < 0 || pr.top > innerHeight) { const snap = Math.round(r.target / r.step) * r.step; if (snap !== r.x || snap !== r.target) { r.target = r.x = snap; r.vel = 0 } }
     }
     if (r.finite) {
@@ -430,8 +456,9 @@ function workFrame(now = performance.now()) {
     }
     if (!r.isDown()) r.x += (r.target - r.x) * (reduced ? 1 : 1 - Math.exp(-dt / (r.tau || RAIL_TAU)))
     const k = r.finite ? r.x : mod(r.x, r.setW)
-    r.strip.style.transform = `translate3d(${(-(r.start + k)).toFixed(2)}px, 0, 0)`
-  }
+    const tf = `translate3d(${(-(r.start + k)).toFixed(2)}px, 0, 0)`
+    if (tf !== r.tf) { r.tf = tf; r.strip.style.transform = tf }   // piste immobile : aucune écriture
+  })
 }
 /** Amène une carte d'origine au début de sa piste (retour depuis une fiche). */
 function showCard(card) {
@@ -451,19 +478,28 @@ const wordsSvg = [...document.querySelectorAll('.hero .studio__word')]
 // par des dégradés ; pour chaque arrêt (position xn de 0 à 1 sur le mot), l'avancée locale s (0 : rien, 1 : net et
 // plein) suit une bande qui va de gauche à droite, plafonnée par la retenue (rien n'est entièrement net avant la fin)
 const sweeps = wordsSvg.filter((w) => w.dataset.bande).map((el) => ({ el, stops: [...el.querySelectorAll('.bal-g')].map((g) => [...g.querySelectorAll('stop')]),
-  b: +el.dataset.bande, r: +el.dataset.retenue, last: -1 }))
+  b: +el.dataset.bande, r: +el.dataset.retenue, last: -1, cv: reduced || OFF.has('cvs') ? null : sweepCanvas(el) }))
 // poids des trois copies pour une avancée s : de la très floue à la nette ; leur somme vaut s (l'opacité)
+if (import.meta.env.DEV) Object.assign(window, { __sweeps: sweeps, __sweep: (d) => { window.__sweepHold = false; sweep(d); window.__sweepHold = true } })
 const sweepW = (s) => s <= 0.5 ? [s * (1 - 2 * s), 2 * s * s, 0] : [0, s * (2 - 2 * s), s * (2 * s - 1)]
 function sweep(draw) {
+  if (import.meta.env.DEV && window.__sweepHold) return
   const a = Math.round((1 - draw) * 1000) / 1000
   for (const sw of sweeps) {
     if (a === sw.last) continue
     sw.last = a
     const n = sw.stops[0].length, cap = 1 - sw.r + sw.r * a
+    const ws = [new Array(n), new Array(n), new Array(n)]
     for (let i = 0; i < n; i++) {
-      const xn = i / (n - 1), s = Math.min(1, Math.max(0, (a * (1 + sw.b) - xn) / sw.b)) * cap, ws = sweepW(s)
-      for (let k = 0; k < 3; k++) sw.stops[k][i].setAttribute('stop-opacity', ws[k].toFixed(3))
+      const xn = i / (n - 1), s = Math.min(1, Math.max(0, (a * (1 + sw.b) - xn) / sw.b)) * cap, w = sweepW(s)
+      for (let k = 0; k < 3; k++) ws[k][i] = +w[k].toFixed(3)
     }
+    // balayage en cours : copies floues dessinées dans le canvas (sweep-canvas.js : même calcul, sans filtres ni masques
+    // SVG recalculés à chaque image), copie nette dans le SVG ; avant et après, ou canvas pas prêt : SVG d'origine seul
+    const live = !!sw.cv?.ready && a > 0 && a < 1
+    if (live) sw.cv.draw(ws)
+    for (let k = live ? 2 : 0; k < 3; k++) for (let i = 0; i < n; i++) sw.stops[k][i].setAttribute('stop-opacity', ws[k][i].toFixed(3))
+    sw.cv?.show(live)
     sw.el.classList.toggle('bal-net', a >= 1)   // entièrement net : les copies floues ne sont plus calculées
   }
 }
@@ -504,7 +540,7 @@ let swWords = null, swT = null, swOn = null, swOffT = null
 const resetScrollWords = () => { swWords = null }
 addEventListener('resize', resetScrollWords)
 addEventListener('load', resetScrollWords)
-function scrollWords(vh) {
+function scrollWords(vh, sy = scrollY) {
   if (!swWords) {
     swWords = [...document.querySelectorAll('[data-sw] .w')]
     const line = vh * SW_LINE, max = document.documentElement.scrollHeight - innerHeight
@@ -530,19 +566,33 @@ function scrollWords(vh) {
     swOn = swWords.map((w) => w.classList.contains('on'))
   }
   for (let i = 0; i < swWords.length; i++) {
-    const on = swOn[i] ? scrollY >= swOffT[i] : scrollY >= swT[i]
+    const on = swOn[i] ? sy >= swOffT[i] : sy >= swT[i]
     if (on !== swOn[i]) { swOn[i] = on; swWords[i].classList.toggle('on', on) }
   }
 }
 const foot = document.querySelector('.foot')
 let footPush = -1
+let edgeBottom = null
+const wordsVals = new WeakMap()
+// une image = toutes les lectures de mise en page d'abord, puis toutes les écritures : une lecture après une écriture
+// force le navigateur à recalculer styles et mise en page au milieu de l'image (Chrome l'absorbe, Safari saccade)
 function scrollEffects() {
-  scrollWords(innerHeight)
   const vh = innerHeight
+  // — lectures —
+  const sy = scrollY
+  edgeBottom ||= document.querySelector('.edge--bottom')
+  fxCss?.read()
+  const footTop = foot ? foot.getBoundingClientRect().top : 0
+  const blockRects = wordBlocks.map((b) => b.el.getBoundingClientRect())
+  // — écritures —
+  fxCss?.write()
+  scrollWords(vh, sy)
   // la bande du bas s'efface en haut de page (mots-clés de l'accueil) ; en fin de page, elle est coupée au bord haut du
   // pied de page, au fur et à mesure qu'il apparaît : il n'est jamais flouté, rien ne disparaît d'un coup
-  root.classList.toggle('edge-bottom-off', scrollY < 40)
-  if (foot) { const push = Math.max(0, vh - foot.getBoundingClientRect().top); if (push !== footPush) { footPush = push; root.style.setProperty('--band-push', push.toFixed(1) + 'px') } }
+  const edgeOff = sy < 40
+  if (edgeOff !== root.classList.contains('edge-bottom-off')) root.classList.toggle('edge-bottom-off', edgeOff)
+  // variable posée sur la bande elle-même, pas sur <html> : sinon toute la page est restylée à chaque image
+  if (foot && edgeBottom) { const push = Math.max(0, vh - footTop); if (push !== footPush) { footPush = push; edgeBottom.style.setProperty('--band-push', push.toFixed(1) + 'px') } }
   // accueil épinglé : avancée hp (0 à 1) ; le mot se trace puis se remplit, puis la présentation s'allume
   // (écran tactile : avancée freinée, hero-progress.js)
   const hp = HERO.p
@@ -554,18 +604,23 @@ function scrollEffects() {
     if (on !== heroOn) { heroWords.forEach((w, i) => w.classList.toggle('on', i < on)); heroOn = on }
     // la barre du haut et le reste du site n'apparaissent qu'une fois la scène de l'accueil finie, quand l'écran
     // commence à descendre (jusque-là : le fond, le gros logo et la présentation seulement)
-    if (on === heroWords.length && hp >= 0.999) root.classList.add('hero-done')
+    if (on === heroWords.length && hp >= 0.999 && !root.classList.contains('hero-done')) root.classList.add('hero-done')
   }
   // le nom existe en deux versions (une ligne / deux lignes sur mobile) : même avancée pour les deux
+  // le nom apparaît tôt et sur une longue course ; il est entièrement net avant que la présentation commence (0,6)
+  const p = k(0.12, 0.5)
+  const draw = (1 - Math.min(1, p * 1.2)).toFixed(3), fill = Math.min(1, Math.max(0, (p - 0.4) / 0.6)).toFixed(3)
   wordsSvg.forEach((w) => {
-    // le nom apparaît tôt et sur une longue course : tracé de 16 % à 79 % de la scène, remplissage dans la seconde moitié
-    const p = k(0.12, 0.5)   // le nom est entièrement net avant que la présentation commence (0,6)
-    w.style.setProperty('--draw', (1 - Math.min(1, p * 1.2)).toFixed(3))
-    w.style.setProperty('--fill', Math.min(1, Math.max(0, (p - 0.4) / 0.6)).toFixed(3))
+    if (OFF.has('novars') && w.classList.contains('hero__name')) return
+    const prev = wordsVals.get(w)
+    if (prev && prev[0] === draw && prev[1] === fill) return   // inchangé : aucune écriture (pas de restyle inutile)
+    wordsVals.set(w, [draw, fill])
+    w.style.setProperty('--draw', draw)
+    w.style.setProperty('--fill', fill)
   })
-  sweep(1 - Math.min(1, k(0.12, 0.5) * 1.2))
-  for (const b of wordBlocks) {
-    const r = b.el.getBoundingClientRect()
+  if (!OFF.has('sweep')) sweep(1 - Math.min(1, p * 1.2))
+  wordBlocks.forEach((b, j) => {
+    const r = blockRects[j]
     const p = Math.min(1, Math.max(0, (vh * 0.85 - r.top) / (r.height + vh * 0.25)))
     // mots allumés ; le mot en cours d'apparition se remplit de gauche à droite, son front est irisé.
     // Mis à jour à chaque image pour que l'état suive exactement le défilement, dans les deux sens.
@@ -576,7 +631,7 @@ function scrollEffects() {
     }
     const lead = b.words[on]
     if (lead) { const v = f.toFixed(3); if (lead.dataset.f !== v) { lead.dataset.f = v; lead.style.setProperty('--f', v) } }
-  }
+  })
 }
 if (reduced) { root.classList.add('hero-done', 'bar-on'); heroWords.forEach((w) => w.classList.add('on')); wordsSvg.forEach((w) => w.style.setProperty('--draw', 0)); sweep(0); wordBlocks.forEach((b) => b.words.forEach((w) => w.classList.add('on'))) }
 
@@ -667,19 +722,22 @@ Promise.race([
   if (backTo) { const go = () => { const el = document.getElementById(backTo); if (!el) return; const y = el.getBoundingClientRect().top + scrollY - innerHeight * 0.15; if (lenis) lenis.scrollTo(y, { immediate: true, force: true }); else scrollTo(0, y) }; go(); setTimeout(go, 300) }
 }))
 
-startFxCss()   // grain des bandes de flou CSS
+const fxCss = OFF.has('side') ? null : startFxCss()   // grain des bandes de flou CSS
 
 
+if (import.meta.env.DEV) window.__lenis = lenis
+const PROF = import.meta.env.DEV && new URLSearchParams(location.search).has('prof') ? (window.__prof = {}) : null
+const pt = (k, fn) => { if (!PROF) return fn(); const a = performance.now(); fn(); (PROF[k] ||= []).push(performance.now() - a) }
 function loop(t) {
-  lenis?.raf(t)
+  pt('lenis', () => lenis?.raf(t))
   // pistes et fiches d'abord, puis le WebGL : les images sont dessinées à la position finale des titres (même image)
-  workFrame(t)
-  ficheFrame(t)
-  updateHero(t, hero)   // avancée de la scène d'accueil (freinée sur écran tactile)
-  updateFlow(t)   // roue « flux » : une texture par image, partagée par le chargeur, le logo et la lentille
-  backdrop?.frame(t)
-  gl?.frame(t)
-  if (!reduced) scrollEffects()
+  pt('work', () => workFrame(t))
+  pt('fiche', () => ficheFrame(t))
+  pt('hero', () => updateHero(t, hero))   // avancée de la scène d'accueil (freinée sur écran tactile)
+  pt('flow', () => updateFlow(t))   // roue « flux » : une texture par image, partagée par le chargeur, le logo et la lentille
+  pt('bg', () => { if (!OFF.has('bg')) backdrop?.frame(t) })
+  pt('gl', () => { if (!OFF.has('gl')) gl?.frame(t) })
+  pt('fx', () => { if (!reduced) scrollEffects() })
   requestAnimationFrame(loop)
 }
 requestAnimationFrame(loop)
@@ -752,3 +810,4 @@ addEventListener('popstate', () => { if (location.pathname !== shownPath) locati
 
 
 
+initBooks()

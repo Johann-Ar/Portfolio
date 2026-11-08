@@ -187,7 +187,7 @@ main { position: relative; }   /* pas de contexte d'empilement : le mot de l'acc
 .foot, main > section:not(.hero) { position: relative; z-index: 1; }
 [data-gl] { position: relative; overflow: hidden; display: block; }
 .gl-card { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }   /* écran tactile : image propre de la vignette (gl.js) */
-[data-gl] > img, [data-gl] > picture > img, [data-gl] > video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transition: opacity var(--dur-slow); }
+[data-gl] > img, [data-gl] > picture > img, [data-gl] > video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: var(--pos, 50% 50%); transition: opacity var(--dur-slow); }
 .has-gl [data-gl] > img, .has-gl [data-gl] > picture > img, .has-gl [data-gl] > video { opacity: 0; }
 
 /* apparitions au défilement (seulement si le script tourne), avec la lueur irisée */
@@ -707,7 +707,7 @@ main { position: relative; }   /* pas de contexte d'empilement : le mot de l'acc
    sa phase (avant la présentation). Le dessin a une marge (--m, part de sa largeur) pour le halo du flou : la largeur
    et les marges négatives la compensent, le mot occupe exactement la place --w. */
 .hero__word .hero__name.logotype--balayage { width: calc(var(--w) * (1 + 2 * var(--m))); margin: calc(var(--w) * -1 * var(--m)); }
-.bal-net .bal-c0, .bal-net .bal-c1 { display: none; }
+.bal-net .bal-c0, .bal-net .bal-c1, .bal-cv .bal-c0, .bal-cv .bal-c1 { display: none; }   /* .bal-cv : copies floues dans le canvas (sweep-canvas.js) */
 .hero__word .hero__name.studio__word--line { --w: min(84vw, 1560px); }
 @media (max-width: 760px) { .hero__word .hero__name.studio__word--stack { --w: min(80vw, 420px); } }
 /* pied de page : « © … » en bas à gauche, JOHANN ARATA (logotype vectorisé du pack) au centre, sans animation ni effet
@@ -732,3 +732,16 @@ main { position: relative; }   /* pas de contexte d'empilement : le mot de l'acc
   opacity: 0; filter: blur(6px); visibility: hidden; transition: opacity 0.35s var(--ease-flow), filter 0.45s var(--ease-flow), visibility 0.45s; }
 .about .copy-toast.on, .copy-toast.on { opacity: 1; filter: none; visibility: visible; }
 @media (prefers-reduced-motion: reduce) { .copy-toast { transition: none; filter: none; } }
+
+/* livre PDF feuilletable (src/book.js) : fond sombre irisé, couverture et chargeur jusqu'à l'ouverture */
+.fiche__media figure.book { position: relative; overflow: hidden; touch-action: pan-y;
+  background: radial-gradient(60% 70% at 30% 20%, rgba(253, 53, 165, .18), transparent 70%), radial-gradient(60% 70% at 75% 85%, rgba(34, 224, 216, .14), transparent 70%), #141416; }
+.book__poster { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain !important; padding: 6%; box-sizing: border-box; transition: opacity .6s; }
+.book__mount { position: absolute; inset: 0; opacity: 0; transition: opacity .8s; }
+.book__mount .flip-book, .book__mount .flip-book .view { background: transparent !important; }
+.book[data-state="ready"] .book__mount { opacity: 1; }
+.book[data-state="ready"] .book__poster, .book[data-state="ready"] .book__load { opacity: 0; pointer-events: none; }
+.book__load { position: absolute; left: 50%; bottom: 7%; transform: translateX(-50%); display: grid; justify-items: center; gap: 10px; color: #fff; transition: opacity .4s; }
+.book__bar { display: block; width: min(220px, 50vw); height: 3px; border-radius: 3px; background: rgba(255, 255, 255, .18); overflow: hidden; }
+.book__bar i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, #22E0D8, #FD35A5); transition: width .3s; }
+.book[data-state="error"] .book__load { display: none; }

@@ -68,6 +68,7 @@ export const ui = {
 export const projects = [
   {
     slug: '4derives',
+    research: true,   // présenté seulement dans Recherche (avec ses essais 4DGS)
     genre: T('Rivière, film et 4D Gaussian splatting', 'River, film and 4D Gaussian splatting'),   // repris du portfolio
     title: '4Dérives',
     year: '2025-26',
@@ -151,7 +152,7 @@ export const projects = [
     title: 'Photographique Volume',
     year: '2025-26',
     milieu: T('Littoral', 'Coastline'),
-    cover: 'photographique-volume/029.webp',
+    cover: 'photographique-volume/vignette.webp',
     coverCredit: T('Rendu : Johann Arata, d’après les photographies de Nicolas Floc’h', 'Render: Johann Arata, from Nicolas Floc’h’s photographs'),
     spec: [
       [T('Source', 'Source'), T('Photographies de Nicolas Floc’h', 'Photographs by Nicolas Floc’h')],
@@ -211,19 +212,73 @@ export const projects = [
     tools: 'Figma',
     credits: [],
     media: [
-      // ordre : le produit en main, l'écran phare, la démarche (croquis, références), le système (grille, typo,
-      // couleurs, images), puis les écrans finaux et le parcours fermé
+      // ordre : le produit en main, l'écran phare, le parcours ouvert, le système (grille, typo, couleurs, images),
+      // puis les écrans fermés et leur parcours
       { src: 'duo-news/main-prototype.webp', alt: T('Le journal Duo News tenu en main, iPhone Duo fermé', 'Duo News held in hand, iPhone Duo closed') },
       { src: 'duo-news/ouvert-une.webp', alt: T('Le journal ouvert en double page', 'The newspaper open as a double page') },
       { src: 'duo-news/duo-news-ouvert.mp4', poster: 'duo-news/duo-news-ouvert-poster.webp', alt: T('Parcours du journal ouvert, de l’accueil à la fin de l’édition', 'Open newspaper flow, from home to the end of the edition') },
-      { src: 'duo-news/wireframe.webp', alt: T('Wireframe dessiné à la main', 'Hand-drawn wireframe') },
-      { src: 'duo-news/references-iconographiques.webp', alt: T('Références iconographiques : unes de journaux anciens', 'Visual references: old newspaper front pages') },
       { src: 'duo-news/la-grille.webp', alt: T('La grille : 6 colonnes, ligne de base de 16 px', 'The grid: 6 columns, 16 px baseline') },
       { src: 'duo-news/les-styles-de-texte.webp', alt: T('Les styles de texte : trois familles, onze styles', 'Text styles: three typefaces, eleven styles') },
       { src: 'duo-news/les-couleurs.webp', alt: T('Les couleurs : trois thèmes, clair, confort et sombre', 'Colours: three themes, light, comfort and dark') },
       { src: 'duo-news/traitement-des-images.webp', alt: T('Le traitement des images en trichromie', 'Image processing in trichromy') },
       { src: 'duo-news/ferme-trio.webp', alt: T('Trois pages du journal fermé', 'Three pages of the closed newspaper') },
       { src: 'duo-news/duo-news-ferme.mp4', poster: 'duo-news/duo-news-ferme-poster.webp', alt: T('Parcours du journal fermé, page par page', 'Closed newspaper flow, page by page') },
+    ],
+  },
+  {
+    slug: 'voyageur-1',
+    genre: T('Disque d’or de Voyager, images en volume', 'Voyager Golden Record, images in volume'),   // repris du README
+    title: 'Voyageur 1',
+    year: '2026',
+    milieu: T('Espace', 'Space'),
+    cover: 'voyageur-1/vignette.webp',
+    coverMobile: 'voyageur-1/vignette-mobile.webp',
+    coverCredit: T('Images du disque : NASA / JPL ; décodage : Ron Barry (2017)', 'Record images: NASA / JPL; decoding: Ron Barry (2017)'),
+    spec: [
+      [T('Source', 'Source'), T('Les 116 images du disque d’or (1977), décodées du signal sonore par Ron Barry en 2017', 'The 116 images of the Golden Record (1977), decoded from the audio signal by Ron Barry in 2017')],
+      [T('Traitement', 'Processing'), T('Simulation du signal (encodage, canal, décodage), calibrée sur 28 paires NASA ↔ décodage', 'Signal simulation (encoding, channel, decoding), calibrated on 28 NASA ↔ decoded pairs')],
+      [T('Rendu', 'Output'), T('Splats gaussiens, moteur WebGL 2 écrit pour le projet', 'Gaussian splats, WebGL 2 engine written for the project')],
+    ],
+    intent: T(
+      'Faire découvrir le disque d’or embarqué en 1977 à bord de Voyager 1 et Voyager 2, et chacune de ses images en volume.',
+      'An introduction to the Golden Record carried aboard Voyager 1 and Voyager 2 in 1977, and to each of its images in volume.',
+    ),
+    context: T(
+      'Les 116 images du disque n’y sont pas imprimées : elles sont gravées dans le sillon sous la forme d’un signal sonore. Décodées en 2017 à partir d’une copie restée sur Terre, elles gardent les traces de leur passage par le son : stries, trames, pertes.',
+      'The record’s 116 images are not printed on it: they are cut into the groove as an audio signal. Decoded in 2017 from a copy left on Earth, they keep the marks of their journey through sound: streaks, scan lines, losses.',
+    ),
+    capture: T(
+      'Un récit en photos d’archives NASA (le disque fixé sur la sonde, le lancement du 5 septembre 1977, le « point bleu pâle »), puis un voyage jusqu’au disque, qui tourne entouré de ses 116 images.',
+      'A story told through NASA archive photos (the record mounted on the probe, the launch on 5 September 1977, the “pale blue dot”), then a journey to the record, which spins surrounded by its 116 images.',
+    ),
+    processing: T(
+      'Chaque image se reforme en environ 49 000 gaussiennes, étirées dans le sens des traces du balayage de 1977 et détachées là où le signal l’a abîmée, d’après une carte de perte mesurée. Les images couleur arrivent en trois nappes R, V, B, les trois passages du disque.',
+      'Each image re-forms as about 49,000 Gaussians, stretched along the 1977 scan lines and pulled apart where the signal damaged it, following a measured loss map. Colour images arrive as three R, G, B layers, the record’s three passes.',
+    ),
+    staging: T(
+      'Le son accompagne tout le parcours : salutations, chant des baleines et musiques du disque, passés par un traitement « platine ». Le site est statique et sans dépendance à l’exécution.',
+      'Sound runs through the whole experience: greetings, whale song and music from the record, given a “turntable” treatment. The site is static, with no runtime dependencies.',
+    ),
+    learned: TODO('ce que tu as appris, les limites', 'what you learned, the limits'),
+    role: TODO('ton rôle', 'your role'),
+    tools: 'WebGL 2, TypeScript, Vite, Web Audio',
+    credits: [
+      T('Voyager Golden Record (1977) : NASA / JPL', 'Voyager Golden Record (1977): NASA / JPL'),
+      T('Décodage des images : Ron Barry (2017)', 'Image decoding: Ron Barry (2017)'),
+      T('Photos d’archives : NASA / JPL-Caltech, NASA / KSC', 'Archive photos: NASA / JPL-Caltech, NASA / KSC'),
+      T('Projet indépendant, ni produit ni approuvé par la NASA', 'Independent project, not produced or endorsed by NASA'),
+    ],
+    link: { label: T('Voir le code', 'View the code'), href: 'https://github.com/Johann-Ar/Voyageur-1' },
+    media: [
+      // ordre : le disque (écran phare), son parcours, l'accueil et le récit, l'image en volume, la galerie
+      { src: 'voyageur-1/disque.webp', alt: T('Le disque d’or qui tourne, entouré de ses images', 'The Golden Record spinning, surrounded by its images') },
+      { src: 'voyageur-1/voyageur-disque.mp4', poster: 'voyageur-1/voyageur-disque-poster.webp', alt: T('Arrivée sur le disque, puis rotation au glisser', 'Arrival at the record, then drag to spin it') },
+      { src: 'voyageur-1/accueil.webp', alt: T('L’accueil du site', 'The site’s home screen') },
+      { src: 'voyageur-1/recit.webp', alt: T('Le récit : le disque d’or fixé sur la sonde', 'The story: the Golden Record mounted on the probe') },
+      { src: 'voyageur-1/point-bleu.webp', alt: T('Le récit : la sonde jusqu’à l’espace interstellaire', 'The story: the probe reaching interstellar space') },
+      { src: 'voyageur-1/voyageur-volume.mp4', poster: 'voyageur-1/voyageur-volume-poster.webp', alt: T('Une image du disque se reforme en volume, puis tourne', 'A record image re-forms in volume, then turns') },
+      { src: 'voyageur-1/volume.webp', alt: T('Une image ouverte en volume', 'An image opened in volume') },
+      { src: 'voyageur-1/galerie.webp', alt: T('La galerie des 116 images', 'The gallery of 116 images') },
     ],
   },
   {
@@ -261,7 +316,7 @@ export const projects = [
       { src: 'mondes-immerges/012.webp', alt: T('Expérimentation en volume', 'Volume experiment') },
       { src: 'mondes-immerges/010.webp', alt: T('Expérimentation graphique', 'Graphic experiment') },
       { src: 'mondes-immerges/009.webp', alt: T('Aurores boréales transformées en particules', 'Northern lights turned into particles') },
-      { src: 'mondes-immerges/005.webp', alt: T('Données scientifiques mises en image', 'Scientific data made visual') },
+      { book: 'mondes-immerges/livre.pdf', poster: 'mondes-immerges/011.webp', alt: T('Le livre Mondes Immergés à feuilleter', 'The Mondes Immergés book, to leaf through') },
     ],
   },
 ]
@@ -287,17 +342,18 @@ export const research = {
       image: 'en-cours.webp', label: T('En cours', 'In progress'),   // dégradé tramé ; texte net dessiné par le WebGL
     },
     {
-      kind: T('Relevé', 'Record'), when: '2025-26',
-      title: T('Essais 4DGS', '4DGS tests'),
-      text: T('Les essais en 4D Gaussian splatting (Luma AI) tirés du tournage de 4Dérives, qui prolongent l’espace hors du cadre. Ils montrent les limites des outils accessibles aujourd’hui.', 'The 4D Gaussian splatting tests (Luma AI) drawn from the 4Dérives footage, which extend the space beyond the frame. They show the limits of today’s accessible tools.'),
-      image: '4derives/073.webp', alt: T('Essai de 4D Gaussian splatting sur le tournage de 4Dérives', '4D Gaussian splatting test on the 4Dérives footage'),
+      // 4Dérives et les essais 4DGS : un seul travail (le film et ses essais en 4D Gaussian splatting)
+      kind: T('Film et 4D Gaussian splatting', 'Film and 4D Gaussian splatting'), when: '2025-26',
+      title: T('4Dérives', '4Dérives'),
+      text: T('Une descente de rivière filmée en GoPro sur trois saisons, et ses essais en 4D Gaussian splatting (Luma AI) qui prolongent l’espace hors du cadre. Ils montrent les limites des outils accessibles aujourd’hui.', 'A river descent filmed on a GoPro across three seasons, and its 4D Gaussian splatting tests (Luma AI) that extend the space beyond the frame. They show the limits of today’s accessible tools.'),
+      slug: '4derives', image: '4derives/080.webp', alt: T('4Dérives, la rivière filmée en GoPro', '4Dérives, the river filmed on a GoPro'),
       href: '#p-4derives',
     },
     {
       kind: T('Article de recherche', 'Research paper'), when: '2024-25',
       title: T('Mondes Immergés', 'Mondes Immergés'),
       text: T('Comment le design immersif peut-il rendre sensibles des milieux aquatiques qui se dégradent ? Article édité pendant le DNMADe.', 'How can immersive design make damaged aquatic environments felt? A paper published during my design degree.'),
-      slug: 'mondes-immerges', image: 'mondes-immerges/011.webp', alt: T('Couverture du livre Mondes Immergés', 'Cover of Mondes Immergés'),
+      slug: 'mondes-immerges', image: 'mondes-immerges/011.webp', pos: [0.5, 0.12], alt: T('Couverture du livre Mondes Immergés', 'Cover of Mondes Immergés'),
       href: '#p-mondes-immerges',
     },
     {
