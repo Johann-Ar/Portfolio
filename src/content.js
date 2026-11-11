@@ -202,6 +202,7 @@ export const projects = [
     milieu: T('Presse numérique', 'Digital press'),
     cover: 'duo-news/vignette.webp',
     coverMobile: 'duo-news/vignette-mobile.webp',   // vignette carrée (mobile) : l'image de couverture seule
+    coverDark: 'duo-news/vignette-sombre.webp', coverMobileDark: 'duo-news/vignette-mobile-sombre.webp',   // mode sombre : même image, fond sombre
     spec: [
       [T('Support', 'Device'), T('iPhone Duo, écran pliable : ouvert en double page, fermé en une page', 'iPhone Duo, foldable screen: open as a double page, closed as a single page')],
       [T('Contenu', 'Content'), T('Sources RSS d’actualité locales, réglables', 'Local RSS news sources, user-selectable')],
@@ -222,6 +223,7 @@ export const projects = [
     media: [
       // contexte (en main, le parcours ouvert), puis le système (grille, images, typo, couleurs), puis le parcours fermé
       { src: 'duo-news/main-prototype.webp', alt: T('Le journal Duo News tenu en main, iPhone Duo fermé', 'Duo News held in hand, iPhone Duo closed') },
+      { src: 'duo-news/mains-ouvert.webp', alt: T('Le journal ouvert en double page sur un iPhone Duo tenu à deux mains', 'The newspaper open as a double page on an iPhone Duo held in both hands') },
       { src: 'duo-news/duo-news-ouvert.mp4', poster: 'duo-news/duo-news-ouvert-poster.webp', alt: T('Parcours du journal ouvert, de l’accueil à la fin de l’édition', 'Open newspaper flow, from home to the end of the edition') },
       { src: 'duo-news/ouvert-une.webp', alt: T('Le journal ouvert en double page', 'The newspaper open as a double page'), layout: 'stack' },
       { src: 'duo-news/ferme-trio.webp', alt: T('Trois pages du journal fermé', 'Three pages of the closed newspaper'), layout: 'stack' },

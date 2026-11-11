@@ -534,10 +534,12 @@ export function createGL(canvas, { reduced }) {
   const OWN_NEAR = 40, OWN_STEP = 30   // écran tactile : bords où la position compte (px), pas de mise à jour près d'un bord (ms)
   let order = null
   const pending = []
+  let texVer = 0
   const sendNext = () => {
     if (!pending.length || (!pending[0].mark && document.documentElement.classList.contains('intro-lock'))) return
     const v = pending.shift(), src = v.src
     upload(v.tex, src); v.img = [src.videoWidth || src.naturalWidth, src.videoHeight || src.naturalHeight]; v.ready = v.img[0] > 0
+    texVer++   // image renvoyée (ex. vignette changée avec le mode) : la toile doit être redessinée
   }
   const views = [...document.querySelectorAll('[data-gl]')].map((el) => {
     const v = { el, tex: newTex(), img: null, video: el.querySelector('video'), ready: false, seen: 0, glass: 0, color: el.hasAttribute('data-color'), text: el.dataset.text || '', textTex: null, textKey: '',
@@ -552,6 +554,19 @@ export function createGL(canvas, { reduced }) {
     else { src.loading = 'eager'; src.addEventListener('load', done, { once: true }) }
     return v
   })
+  // vignettes qui existent en deux versions (fond clair / fond sombre, data-dark) : l'image suit le mode du site ; la
+  // texture actuelle reste affichée jusqu'à ce que la nouvelle image soit chargée, puis elle est renvoyée au GPU
+  const themed = views.filter((v) => v.src?.dataset?.dark || v.el.querySelector('img[data-dark]'))
+  const syncThemeImages = () => {
+    const dark = theme.bg[0] + theme.bg[1] + theme.bg[2] < 1.5
+    for (const v of themed) {
+      const img = v.el.querySelector('img'), source = v.el.querySelector('source')
+      const set = (el, attr) => { if (!el?.dataset.dark) return false; el.dataset.light ||= el.getAttribute(attr); const want = dark ? el.dataset.dark : el.dataset.light; if (el.getAttribute(attr) === want) return false; el.setAttribute(attr, want); return true }
+      const a = set(source, 'srcset'), b = set(img, 'src')
+      if ((a || b) && v.tex) img.addEventListener('load', () => { if (!pending.includes(v)) pending.push(v) }, { once: true })
+    }
+  }
+  if (themed.length) { syncThemeImages(); new MutationObserver(syncThemeImages).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] }); matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change', syncThemeImages) }
   if (!views.length) return null
   const hasMark = views.some((v) => v.mark)
 
@@ -742,7 +757,7 @@ export function createGL(canvas, { reduced }) {
     // d'abord (phase 1, sans rien dessiner), puis comparées à celles de l'image précédente. Identiques : rien n'est
     // envoyé au GPU, la toile garde l'image déjà affichée (exactement la même). Sinon, dessin complet (phase 2).
     const light = theme.bg[0] + theme.bg[1] + theme.bg[2] > 1.5
-    const sig = [canvas.width, canvas.height, dpr, cellScale, FX.version, ...theme.bg, ...theme.ink, sc, sc > 0 ? lens.x : 0, sc > 0 ? lens.y : 0, views.indexOf(lens.view),
+    const sig = [texVer, canvas.width, canvas.height, dpr, cellScale, FX.version, ...theme.bg, ...theme.ink, sc, sc > 0 ? lens.x : 0, sc > 0 ? lens.y : 0, views.indexOf(lens.view),
       FX.colorStrength > 0 || FX.grain > 0 ? now : 0, Math.floor(scrollY / SEED_STEP)]
     // écran tactile : ni le toucher ni l'appui n'allument une vignette ; c'est la vignette affichée au centre de l'écran
     // (la plus proche du centre, partie visible seulement) qui passe en couleur avec son bord irisé. Petite marge (32 px)

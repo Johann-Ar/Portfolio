@@ -36,7 +36,7 @@ a { color: inherit; }
 :focus-visible { outline: 2px solid var(--iris-bleu); outline-offset: 4px; }   /* bleu de la roue : ≥ 3:1 sur les deux fonds */
 
 .wrap { padding-left: var(--edge-l); padding-right: var(--edge-r); }
-.lbl { font: 400 var(--fs-text)/1.55 var(--font-text); color: var(--ink-86); }   /* étiquettes, sous-titres, genres : même style que le texte courant */
+.lbl { font: 400 var(--fs-text)/1.3 var(--font-text); color: var(--ink-86); }   /* étiquettes, sous-titres, genres : même style que le texte courant ; interligne de la présentation de l’accueil (.hero__line) */
 .disp { font-family: var(--font-display); font-stretch: var(--display-stretch); font-weight: var(--display-weight); letter-spacing: var(--display-track); color: var(--c-white); line-height: 1; text-wrap: balance; overflow-wrap: break-word; }
 .btn { display: inline-flex; align-items: center; gap: 8px; padding: 12px 20px; border-radius: var(--radius-m); border: 1px solid currentColor; color: var(--c-white); background: none; font: 500 15px/1 var(--font-text); text-decoration: none; cursor: pointer; transition: background var(--dur-fast), color var(--dur-fast); }
 .btn:hover { background: var(--c-white); color: var(--c-black); }
@@ -296,7 +296,7 @@ main { position: relative; }   /* pas de contexte d'empilement : le mot de l'acc
    ne voit plus la fin des Travaux de recherche au-dessus */
 .about { min-height: 94svh; align-content: center; padding-top: calc(var(--sp-8) + env(safe-area-inset-top, 0px)); scroll-margin-top: 0; }
 .about h2 { margin-bottom: 10px; }
-.about p { max-width: 60ch; font-size: var(--fs-text); line-height: 1.55; }
+.about p { max-width: 60ch; font-size: var(--fs-text); line-height: 1.3; }
 .about strong { color: var(--ink); font-weight: 700; }
 .studio__word { width: 100%; height: auto; overflow: visible; color: var(--ink); }
 .hero .studio__word { filter: blur(calc((1 - var(--fill, 1)) * 5px)); }   /* le nom se défloute en se remplissant */
