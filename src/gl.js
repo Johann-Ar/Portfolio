@@ -642,7 +642,7 @@ export function createGL(canvas, { reduced }) {
     v.textKey = key
   }
 
-  let W = 0, H = 0, dpr = 1, cellScale = 1, lastSY = 0, scrollT = -1e9, docked = false, markDom = false, heroHi = hasMark, centerV = null
+  let W = 0, H = 0, dpr = 1, cellScale = 1, lastSY = 0, scrollT = -1e9, docked = false, markDom = false, heroHi = hasMark, centerV = null, floatA = 0
   const PX_BUDGET = 2880 * 1800   // pixels de la toile au plus, au-delà de 2× (zoom du navigateur)
   const brandMark = document.querySelector('.topbar .brand')
   const heroEl = document.querySelector('.hero'), dockVals = {}
@@ -841,6 +841,17 @@ export function createGL(canvas, { reduced }) {
         if (markDom) { markDom = false; document.documentElement.classList.remove('mark-dom') }
         flowNeeded = true
         xf = markXf(w, h, reduced ? 1 : p, reduced ? 1e9 : now - v.seen, slot, [innerWidth / 2 - b.left, innerHeight / 2 - b.top], dock)
+        // gros logo à l'arrêt : il flotte doucement (lente houle verticale, légère dérive horizontale, deux périodes
+        // sans multiple commun : le mouvement ne se répète pas à l'identique). Translation seule : jamais de rotation de la
+        // roue. Le flottement s'installe en ~1 s quand la page est immobile et s'efface vite dès qu'elle défile, dès que le
+        // logo part vers la barre (dock) et pendant l'animation d'arrivée : le relais du chargeur et l'emboîtement dans le
+        // petit logo restent au pixel près
+        const still = !reduced && xf[4] >= 1 && now - scrollT > 450 && !(dock && dock.m > 0) && document.documentElement.classList.contains('intro-done')
+        floatA = follow(floatA, still ? 1 : 0, still ? 0.9 : 0.12, dt)
+        if (floatA > 1e-3) {
+          const s = now / 1000, a = floatA * Math.min(xf[2], 520)
+          xf = [xf[0] + Math.sin(s * 2 * Math.PI / 9.1) * 0.006 * a, xf[1] + Math.sin(s * 2 * Math.PI / 5.3) * 0.018 * a, xf[2], xf[3], xf[4]]
+        }
         // survol du « o » (souris) : la couleur sous le curseur s'élargit (flow.js) ; position du curseur sur la roue, dans la
         // même convention que flowColor (u : 0 en bas, sens horaire)
         { const oR = O_R * xf[2] * 1.3, ox = b.left + xf[0] + O_OFF[0] * xf[2], oy = b.top + xf[1] + O_OFF[1] * xf[2]
