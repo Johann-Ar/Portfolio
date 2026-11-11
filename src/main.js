@@ -332,18 +332,29 @@ document.querySelectorAll('[data-reveal]').forEach((el) => io.observe(el))
 const COPIES = 2
 const SNAP_NEAR = 0.35   // PC : calage sur une carte si l'arrivée du geste en est à moins de 35 % d'un pas
 const RAIL_TAU = 0.11    // douceur de la piste (constante de temps, s)
-// molette de souris ou pavé tactile ? Souris : crans (lignes, ou pas de mouvement latéral et un wheelDelta qui n'est pas
-// le triple exact de deltaY, signature des pavés tactiles de Mac). Un geste latéral récent signale un pavé tactile.
+// molette de souris ou pavé tactile ? Décidé une fois par geste (suite d'événements à moins de 180 ms d'écart), à son
+// premier événement, puis gardé jusqu'au bout : l'inertie d'un pavé tactile ne passe jamais pour une molette.
+// - souris à crans : un événement isolé et un grand pas (macOS : 40 px par cran, accéléré ; Windows / Linux : 100 ou
+//   120 px ; Firefox : en lignes). Sur Mac, wheelDelta vaut −3 × deltaY pour la souris comme pour le pavé : il ne
+//   permet pas de les distinguer
+// - pavé tactile, Magic Mouse : le geste part du repos, par petits pas (quelques px), souvent avec un peu de deltaX ;
+//   un glissement latéral récent signale aussi un pavé tactile
 let padT = -1e9, pageWheelT = -1e9
-const isMouseWheel = (e) => {
-  if (e.deltaX) padT = performance.now()
-  if (e.deltaMode === 1) return true
-  if (e.deltaX || performance.now() - padT < 600) return false
-  if (e.wheelDeltaY) return e.wheelDeltaY !== -3 * e.deltaY
-  return Number.isInteger(e.deltaY) && Math.abs(e.deltaY) >= 40
+const wheel = { t: -1e9, notch: false }
+const isNotch = (e, now) => {
+  if (e.deltaMode) return true
+  if (e.deltaX || now - padT < 600) return false
+  return Math.abs(e.deltaY) >= 25
 }
+addEventListener('wheel', (e) => {
+  const now = performance.now()
+  if (now - wheel.t > 180) wheel.notch = isNotch(e, now)
+  else if (e.deltaX) wheel.notch = false
+  if (e.deltaX) padT = now
+  wheel.t = now
+}, { passive: true, capture: true })
 // défilement de la page à la molette (les gestes pris par une piste n'arrivent pas jusqu'ici)
-addEventListener('wheel', (e) => { if (e.deltaY) pageWheelT = performance.now(); if (e.deltaX) padT = performance.now() }, { passive: true })
+addEventListener('wheel', (e) => { if (e.deltaY) pageWheelT = performance.now() }, { passive: true })
 root.classList.add('is-rail')
 const mod = (a, n) => ((a % n) + n) % n
 const rails = [...document.querySelectorAll('.work__pin')].map((pin) => {
@@ -374,7 +385,16 @@ const rails = [...document.querySelectorAll('.work__pin')].map((pin) => {
   track.addEventListener('wheel', (e) => {
     const now = performance.now()
     let dx = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.shiftKey ? e.deltaY : 0
-    if (!dx && isMouseWheel(e) && now - pageWheelT > 350) dx = e.deltaY
+    // molette de souris à crans (verticale, ou Maj + molette) : une carte par cran, comme les flèches ; la piste glisse
+    // de l'une à l'autre avec sa douceur habituelle
+    if ((wheel.notch && now - pageWheelT > 350 && !dx) || (wheel.notch && e.shiftKey)) {
+      if (!e.deltaY) return
+      e.preventDefault(); e.stopPropagation()
+      // carte suivante dans le sens du cran, même si la piste s'était arrêtée entre deux cartes (jamais de carte sautée)
+      const k = r.target / r.step; r.dir = Math.sign(e.deltaY)
+      r.target = (r.dir > 0 ? Math.floor(k + 1e-3) + 1 : Math.ceil(k - 1e-3) - 1) * r.step
+      r.last = now; r.tau = 0; r.wheel = true; r.snapped = true; return
+    }
     if (!dx) return
     e.preventDefault(); e.stopPropagation()
     r.target += dx * (e.deltaMode === 1 ? 32 : 1); r.last = now; r.wheel = true; r.tau = 0; r.snapped = false; r.dir = Math.sign(dx)   // sens de l'élan (magnétisme)
