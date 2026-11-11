@@ -127,6 +127,12 @@ a { color: inherit; }
 .edge--top { top: 0; height: 92px; background: linear-gradient(180deg, color-mix(in srgb, var(--bg) 88.0%, transparent) 0%, color-mix(in srgb, var(--bg) 69.8%, transparent) 10%, color-mix(in srgb, var(--bg) 53.9%, transparent) 20%, color-mix(in srgb, var(--bg) 40.2%, transparent) 30%, color-mix(in srgb, var(--bg) 28.6%, transparent) 40%, color-mix(in srgb, var(--bg) 19.2%, transparent) 50%, color-mix(in srgb, var(--bg) 11.7%, transparent) 60%, color-mix(in srgb, var(--bg) 6.2%, transparent) 70%, color-mix(in srgb, var(--bg) 2.6%, transparent) 80%, color-mix(in srgb, var(--bg) 0.6%, transparent) 90%, color-mix(in srgb, var(--bg) 0.0%, transparent) 100%); }
 @media (min-width: 769px) { .edge--top { height: 74px; } }   /* PC : fondu du haut plus court */
 .edge--bottom { bottom: 0; height: 120px; background: linear-gradient(0deg, color-mix(in srgb, var(--bg) 88.0%, transparent) 0%, color-mix(in srgb, var(--bg) 69.8%, transparent) 10%, color-mix(in srgb, var(--bg) 53.9%, transparent) 20%, color-mix(in srgb, var(--bg) 40.2%, transparent) 30%, color-mix(in srgb, var(--bg) 28.6%, transparent) 40%, color-mix(in srgb, var(--bg) 19.2%, transparent) 50%, color-mix(in srgb, var(--bg) 11.7%, transparent) 60%, color-mix(in srgb, var(--bg) 6.2%, transparent) 70%, color-mix(in srgb, var(--bg) 2.6%, transparent) 80%, color-mix(in srgb, var(--bg) 0.6%, transparent) 90%, color-mix(in srgb, var(--bg) 0.0%, transparent) 100%); }
+/* fondu du haut de l'accueil : la bande haute du fond (backdrop.js) remplace le voile uni, avec le même profil d'opacité ;
+   les formes colorées du fond ne sont plus recouvertes de blanc, seul le contenu s'efface */
+.edge--live { background: none !important; }
+.edge__bg { position: absolute; inset: 0; width: 100%; height: 100%; display: block;
+  -webkit-mask: linear-gradient(180deg, rgb(0 0 0 / .88) 0%, rgb(0 0 0 / .698) 10%, rgb(0 0 0 / .539) 20%, rgb(0 0 0 / .402) 30%, rgb(0 0 0 / .286) 40%, rgb(0 0 0 / .192) 50%, rgb(0 0 0 / .117) 60%, rgb(0 0 0 / .062) 70%, rgb(0 0 0 / .026) 80%, rgb(0 0 0 / .006) 90%, transparent 100%);
+  mask: linear-gradient(180deg, rgb(0 0 0 / .88) 0%, rgb(0 0 0 / .698) 10%, rgb(0 0 0 / .539) 20%, rgb(0 0 0 / .402) 30%, rgb(0 0 0 / .286) 40%, rgb(0 0 0 / .192) 50%, rgb(0 0 0 / .117) 60%, rgb(0 0 0 / .062) 70%, rgb(0 0 0 / .026) 80%, rgb(0 0 0 / .006) 90%, transparent 100%); }
 .edge-bottom-off .edge--bottom { visibility: hidden !important; }
 .edge--bottom { clip-path: inset(0 0 var(--band-push, 0px) 0); }   /* coupée au bord haut du pied de page (main.js) : il n'est jamais flouté */
 /* mode clair : un voile clair en fondu blanchit le contenu ; à la place, flou progressif (backdrop-filter masqué en dégradé,
@@ -729,17 +735,38 @@ main { position: relative; }   /* pas de contexte d'empilement : le mot de l'acc
 .about .copy-toast.on, .copy-toast.on { opacity: 1; filter: none; visibility: visible; }
 @media (prefers-reduced-motion: reduce) { .copy-toast { transition: none; filter: none; } }
 
-/* livre PDF feuilletable (src/book.js) : fond sombre irisé, couverture et chargeur jusqu'à l'ouverture */
+/* livre feuilletable (src/book.js) : fond sombre irisé, couverture et chargeur jusqu'à l'ouverture */
 .fiche__media figure.book { position: relative; overflow: hidden; touch-action: pan-y;
   background: radial-gradient(60% 70% at 30% 20%, rgba(253, 53, 165, .18), transparent 70%), radial-gradient(60% 70% at 75% 85%, rgba(34, 224, 216, .14), transparent 70%), #141416; }
 .book__poster { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain !important; padding: 6%; box-sizing: border-box; transition: opacity .6s; }
 .book__mount { position: absolute; inset: 0; display: grid; place-items: center; opacity: 0; transition: opacity .8s; }
 .book__stage { position: relative; flex: none; width: var(--bw) !important; min-width: var(--bw) !important; max-width: var(--bw) !important; height: var(--bh) !important; transition: transform .9s cubic-bezier(.2,.7,.2,1); }
 .book__page { background: #fff; overflow: hidden; }
-.book__page canvas { display: block; width: 100%; height: 100%; }
+.book__page img { display: block; width: 100%; height: 100%; object-fit: cover; user-select: none; }
 .book[data-state="ready"] .book__mount { opacity: 1; }
 .book[data-state="ready"] .book__poster, .book[data-state="ready"] .book__load { opacity: 0; pointer-events: none; }
 .book__load { position: absolute; left: 50%; bottom: 7%; transform: translateX(-50%); display: grid; justify-items: center; gap: 10px; color: #fff; transition: opacity .4s; }
 .book__bar { display: block; width: min(220px, 50vw); height: 3px; border-radius: 3px; background: rgba(255, 255, 255, .18); overflow: hidden; }
 .book__bar i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, #22E0D8, #FD35A5); transition: width .3s; }
 .book[data-state="error"] .book__load { display: none; }
+
+/* ——— surlignage en masque (src/hl.js) ———
+   l'aplat et le texte inversé forment un seul calque (.hl, copie du bouton), découvert de gauche à droite par clip-path :
+   chaque lettre change de couleur exactement quand l'aplat passe dessous ; la copie a déjà ses couleurs et sa lueur
+   finales (aucune transition de couleur ni d'ombre, donc aucun retard). Le bouton lui-même ne change plus au survol. */
+.hl-on { position: relative; }
+.hl-on.hl-on:is(:hover, :focus-visible, :active) { background-size: 0% 100% !important; color: var(--ink) !important; }
+.hl-on.hl-on.btn--light.copy:is(:hover, :focus-visible, :active) { background-size: 0% 100%, auto !important; color: #1E1E1E !important; }
+.hl { position: absolute; inset: 0; padding: inherit; box-sizing: border-box; white-space: nowrap; pointer-events: none;
+  display: block; line-height: inherit; text-align: inherit; font: inherit; letter-spacing: inherit; text-transform: inherit;
+  background: var(--ink); color: var(--bg); clip-path: inset(0 100% 0 0); transition: clip-path var(--hl-dur) var(--hl-ease); }
+.hl-on:is(:hover, :focus-visible, :active) > .hl { clip-path: inset(0 0 0 0); }
+.btn--light.copy > .hl { background: #1E1E1E; color: #fff; }
+.hl, .hl * { transition-property: clip-path !important; }
+.hl * { transition: none !important; }
+/* FR/EN dans la copie : couleurs « survol » en permanence (langue affichée en couleur du fond, l'autre et « / » en gris) */
+.topbar .lang > .hl.hl span { color: color-mix(in srgb, var(--bg) 78%, var(--ink)) !important; }
+:root[data-theme="dark"] .topbar .lang > .hl.hl span { color: color-mix(in srgb, var(--bg) 30%, var(--ink)) !important; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .topbar .lang > .hl.hl span { color: color-mix(in srgb, var(--bg) 30%, var(--ink)) !important; } }
+:root:root[lang="fr"] .topbar .lang > .hl.hl.hl span.lang__fr, :root:root[lang="en"] .topbar .lang > .hl.hl.hl span.lang__en { color: var(--bg) !important; text-shadow: none !important; }
+@media (prefers-reduced-motion: reduce) { .hl { transition: none !important; } }

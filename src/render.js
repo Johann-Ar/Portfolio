@@ -92,8 +92,8 @@ export function render(lang) {
     const format = (w, h) => FORMATS.reduce((best, f) => (Math.abs(Math.log(f * h / w)) < Math.abs(Math.log(best * h / w)) ? f : best))
     // vidéo (.mp4) : lecture muette en boucle, comme une image animée ; x.poster sert d'image d'attente
     const fig = (x) => {
-      // livre PDF feuilletable en 3D (src/book.js) : la couverture et un chargeur en attendant les pages
-      if (x.book) return `<figure class="book" style="--r:1.5" data-book="${m(x.book)}" aria-label="${esc(t(x.alt))}">
+      // livre feuilletable en 3D (src/book.js), pages en images : la couverture et un chargeur en attendant les pages
+      if (x.book) return `<figure class="book" style="--r:1.5" data-book="${m(x.book)}" data-pages="${x.pages}" data-ratio="${x.ratio}" aria-label="${esc(t(x.alt))}">
         <img class="book__poster" src="${m(x.poster)}" alt="" loading="lazy" decoding="async">
         <div class="book__load" aria-hidden="true"><span class="book__bar"><i></i></span><span class="lbl">${lang === 'fr' ? 'Ouverture du livre' : 'Opening the book'}</span></div>
         <div class="book__mount"></div></figure>`

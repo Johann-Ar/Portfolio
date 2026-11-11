@@ -71,7 +71,7 @@ export const projects = [
   {
     slug: '4derives',
     research: true,   // présenté seulement dans Recherche (avec ses essais 4DGS)
-    genre: T('Rivière, film et 4D Gaussian splatting', 'River, film and 4D Gaussian splatting'),   // repris du portfolio
+    genre: T('4D Gaussian splatting', '4D Gaussian splatting'),   // à côté du titre : l'outil ou la technique, pas une description du projet
     title: '4Dérives',
     year: '2025-26',
     milieu: T('Rivière', 'River'),
@@ -112,7 +112,7 @@ export const projects = [
   },
   {
     slug: 'dumbo',
-    genre: T('Grands fonds, galerie 3D', 'Deep sea, 3D gallery'),   // repris du portfolio
+    genre: T('WebGL, IA SAM2', 'WebGL, SAM2 AI'),   // à côté du titre : l'outil ou la technique, pas une description du projet
     title: 'Dumbo',
     year: '2026',
     milieu: T('Grands fonds', 'Deep sea'),
@@ -154,7 +154,7 @@ export const projects = [
   },
   {
     slug: 'photographique-volume',
-    genre: T('Photographie sous-marine, paysages 3D', 'Underwater photography, 3D landscapes'),   // repris du portfolio
+    genre: T('WebGL, Depth Anything', 'WebGL, Depth Anything'),   // à côté du titre : l'outil ou la technique, pas une description du projet
     title: 'Photographique Volume',
     year: '2025-26',
     milieu: T('Littoral', 'Coastline'),
@@ -196,7 +196,7 @@ export const projects = [
   },
   {
     slug: 'duo-news',
-    genre: T('Journal numérique, iPhone Duo', 'Digital newspaper, iPhone Duo'),   // repris du Figma (couverture)
+    genre: T('UI design, Figma', 'UI design, Figma'),   // à côté du titre : l'outil ou la technique, pas une description du projet
     title: 'Duo News',
     year: '2026',
     milieu: T('Presse numérique', 'Digital press'),
@@ -234,7 +234,7 @@ export const projects = [
   },
   {
     slug: 'voyageur-1',
-    genre: T('Disque d’or de Voyager, images en volume', 'Voyager Golden Record, images in volume'),   // repris du README
+    genre: T('WebGL 2', 'WebGL 2'),   // à côté du titre : l'outil ou la technique, pas une description du projet
     title: 'Voyageur 1',
     year: '2026',
     milieu: T('Espace', 'Space'),
@@ -284,7 +284,7 @@ export const projects = [
   {
     slug: 'mondes-immerges',
     research: true,   // présenté seulement dans Recherche
-    genre: T('Article de recherche', 'Research paper'),   // repris du portfolio
+    genre: T('Édition, InDesign', 'Editorial design, InDesign'),   // à côté du titre : l'outil ou la technique, pas une description du projet
     title: 'Mondes Immergés',
     year: '2024-25',
     milieu: T('Recherche', 'Research'),
@@ -299,8 +299,8 @@ export const projects = [
       'How can immersive design make damaged aquatic environments felt?',
     ),
     context: T(
-      'Article de recherche de DNMADe (Lycée René Goscinny). Il croise écologie et représentation visuelle et pose les bases des projets qui ont suivi.',
-      'Research paper written during my design degree (Lycée René Goscinny). It brings ecology and visual representation together and laid the groundwork for the projects that followed.',
+      'Article de recherche de DNMADe (René Goscinny). Il croise écologie et représentation visuelle et pose les bases des projets qui ont suivi.',
+      'Research paper written during my design degree (René Goscinny). It brings ecology and visual representation together and laid the groundwork for the projects that followed.',
     ),
     capture: T('Sources documentaires et scientifiques.', 'Documentary and scientific sources.'),
     processing: T('Analyse de dispositifs existants et expérimentations graphiques.', 'Review of existing works and graphic experiments.'),
@@ -311,14 +311,13 @@ export const projects = [
     credits: [],
     link: { label: T('Lire l’article', 'Read the paper'), href: 'https://indd.adobe.com/view/dc3c7dff-f28e-4969-9c00-527dc66c4321' },
     media: [
-      // contexte (le livre en main), puis les expérimentations, puis le site et le livre à feuilleter
+      // contexte (le livre en main), puis les expérimentations, puis le livre à feuilleter
       { src: 'mondes-immerges/012.webp', alt: T('Expérimentation en volume', 'Volume experiment') },
       { src: 'mondes-immerges/013.webp', alt: T('Page d’ouverture', 'Opening spread') },
       { src: 'mondes-immerges/009.webp', alt: T('Aurores boréales transformées en particules', 'Northern lights turned into particles'), layout: 'stack' },
       { src: 'mondes-immerges/005.webp', alt: T('Motif génératif', 'Generative pattern'), layout: 'stack' },
       { src: 'mondes-immerges/010.webp', alt: T('Expérimentation graphique', 'Graphic experiment') },
-      { src: 'mondes-immerges/accueil-fond.mp4', poster: 'mondes-immerges/accueil-fond-poster.webp', alt: T('Le fond animé du site : la Terre sous l’eau', 'The site’s animated background: Earth under water') },
-      { book: 'mondes-immerges/livre.pdf', poster: 'mondes-immerges/011.webp', alt: T('Le livre Mondes Immergés à feuilleter', 'The Mondes Immergés book, to leaf through') },
+      { book: 'mondes-immerges/livre', pages: 130, ratio: 1004 / 1400, poster: 'mondes-immerges/011.webp', alt: T('Le livre Mondes Immergés à feuilleter', 'The Mondes Immergés book, to leaf through') },
     ],
   },
 ]

@@ -11,7 +11,12 @@
  * l'anneau grandit en accélérant (60 % → 100 % du rayon du relais) : le « o » du logo WebGL prend le relais au même
  * pixel, à la même vitesse.
  */
-import { IRIS_STOPS, IRIS_INNER_RATIO, sampleIris } from '../design/logo-kit/src/iris.js'
+import { IRIS_INNER_RATIO } from '../design/logo-kit/src/iris.js'
+import { restRing, RING_N } from './flow-ring.js'
+// roue peinte : exactement celle du « o » du logo WebGL au relais (flux au repos, lissé ; flow-ring.js), pas les arrêts
+// IRIS_STOPS (interpolés autrement : jusqu'à 3° d'écart de couleur au relais)
+const RING = restRing()
+const ringRGB = (u) => { const i = (((Math.round(u * RING_N) % RING_N) + RING_N) % RING_N) * 3; return [RING[i], RING[i + 1], RING[i + 2]] }
 
 export const LOADER = {
   turn: 1350,        // ms par tour
@@ -69,19 +74,19 @@ export function createLoaderDraw(canvas, { dpr = 1, r1 = 44, reduced = false, no
   resize(R1)
 
   // roue du kit, fixe : position 0 en bas (π/2 depuis la droite), sens horaire. Dégradé conique natif ; sans lui, la
-  // même roue calculée pixel par pixel (sampleIris du kit)
+  // même roue calculée pixel par pixel
   let wheelImg = null
   const paintWheel = (g, c) => {
     if (g.createConicGradient) {
       const grad = g.createConicGradient(Math.PI / 2, c, c)
-      for (const [p, col] of IRIS_STOPS) grad.addColorStop(p, col)
+      for (let i = 0; i <= RING_N; i += 4) { const [r, gg, b] = ringRGB(i / RING_N); grad.addColorStop(i / RING_N, `rgb(${r},${gg},${b})`) }
       g.fillStyle = grad; g.fillRect(0, 0, size, size); return
     }
     if (!wheelImg || wheelImg.width !== size) {
       const img = new ImageData(size, size)
       for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) {
-        const [r, gg, b] = sampleIris(Math.atan2(y + 0.5 - c, x + 0.5 - c)), i = (y * size + x) * 4
-        img.data[i] = r * 255; img.data[i + 1] = gg * 255; img.data[i + 2] = b * 255; img.data[i + 3] = 255
+        const [r, gg, b] = ringRGB((Math.atan2(y + 0.5 - c, x + 0.5 - c) - Math.PI / 2) / (2 * Math.PI)), i = (y * size + x) * 4
+        img.data[i] = r; img.data[i + 1] = gg; img.data[i + 2] = b; img.data[i + 3] = 255
       }
       wheelImg = mk(size, size); wheelImg.getContext('2d').putImageData(img, 0, 0)
     }

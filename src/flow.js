@@ -6,6 +6,7 @@
  * saut de couleur au passage de relais. Tampon réutilisé : aucune allocation par image.
  */
 import { irisFlowLUT, irisFlowMix, IRIS_FLOW } from '../design/logo-kit/src/iris-flow.js'
+import { smoothRing } from './flow-ring.js'
 
 // accueil : les réglages « idle » du kit sont si discrets que le flux passe inaperçu ; on les pousse au maximum des
 // plages autorisées par le kit (commentaires de iris-flow.js), sans en sortir
@@ -46,26 +47,9 @@ const amountAt = (now) => {
 // et redescend, la position suit le curseur (chemin le plus court sur la roue).
 const GROW_MAX = 0.6            // jusqu'à 2,5 fois la place de la couleur survolée
 const GROW_IN = 0.6, GROW_OUT = 0.95, FOLLOW = 0.32   // constantes de temps (s) : lent et fluide
-const SMOOTH_R = 10             // lissage des transitions de couleur (échantillons, sur 512) : pas de segments visibles
 const N = 512, tmp = new Float32Array(N * 3), acc = new Float32Array(N * 3)
 let lastAmount = -1, clock = 0, lastNow = null, grow = 0, focus = 0, speed = 1
 const AGITATE_MAX = 3   // vitesse du flux quand on agite la roue (× le rythme passif)
-// flou circulaire (deux passes de moyenne glissante ≈ gaussien) : transitions de couleur fondues
-function smoothRing(src) {
-  for (let i = 0; i < N; i++) for (let c = 0; c < 3; c++) tmp[i * 3 + c] = src[i * 4 + c]
-  for (let pass = 0; pass < 2; pass++) {
-    const r = SMOOTH_R, w = 2 * r + 1
-    for (let c = 0; c < 3; c++) {
-      let sum = 0
-      for (let k = -r; k <= r; k++) sum += tmp[((k % N) + N) % N * 3 + c]
-      for (let i = 0; i < N; i++) {
-        acc[i * 3 + c] = sum / w
-        sum += tmp[((i + r + 1) % N) * 3 + c] - tmp[((i - r) % N + N) % N * 3 + c]
-      }
-    }
-    tmp.set(acc)
-  }
-}
 export function updateFlow(now) {
   const dt = lastNow === null ? 0 : Math.min(0.1, (now - lastNow) / 1000); lastNow = now
   // roue de la lentille agitée par le curseur : le flux accélère (jusqu'à × AGITATE_MAX), revient doucement à son rythme
@@ -82,7 +66,7 @@ export function updateFlow(now) {
   const cfg = irisFlowMix(FLOW.mix)
   cfg.amount = amount
   irisFlowLUT(clock, cfg, N, FLOW.lut)
-  smoothRing(FLOW.lut)
+  smoothRing(FLOW.lut, tmp, acc)   // transitions de couleur fondues (même calcul que le chargeur, flow-ring.js)
   // déformation autour de la couleur survolée (interpolation linéaire : continue, sans saut)
   for (let i = 0; i < N; i++) {
     const u = i / N, d = ((u - focus + 1.5) % 1) - 0.5

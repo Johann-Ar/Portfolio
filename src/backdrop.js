@@ -106,6 +106,18 @@ export function createBackdrop(canvas, { reduced }) {
   resize(); addEventListener('resize', resize)
   new ResizeObserver(measure).observe(document.body)
 
+  // fondu du haut de l'accueil (.edge--top) : au lieu d'un voile de la couleur unie du fond (--bg), qui recouvrait aussi
+  // les formes colorées, une copie de la bande haute de ce fond, recopiée à chaque image : le contenu s'efface dans le
+  // fond tel qu'il est, couleurs comprises (fondu en opacité par un masque, styles.css .edge__bg)
+  const edge = document.querySelector('body > .edge--top')
+  let ectx = null, eH = 0
+  if (edge) {
+    const ec = document.createElement('canvas'); ec.className = 'edge__bg'; edge.append(ec); edge.classList.add('edge--live')
+    ectx = ec.getContext('2d')
+    const size = () => { eH = edge.offsetHeight; ec.width = Math.max(1, Math.round(W * dpr)); ec.height = Math.max(1, Math.ceil(eH * dpr)) }
+    size(); new ResizeObserver(size).observe(edge); addEventListener('resize', size)
+  }
+
   function frame(now) {
     const dt = Math.min(0.05, (now - prev) / 1000); prev = now
     const time = reduced ? 0 : (now - t0) / 1000
@@ -152,6 +164,8 @@ export function createBackdrop(canvas, { reduced }) {
     // formes du fond partagées avec les zones floues (vignettes WebGL, bandes CSS) : leur teinte vient du fond, et défile avec lui
     FX.bg.B = B; FX.bg.A = A; FX.bg.n = N; FX.bg.scroll = Math.max(0, scrollY - pin)
     gl.drawArrays(gl.TRIANGLES, 0, 3)
+    // copie dans la même image que le rendu (le tampon WebGL est encore là) : bande du haut de l'écran
+    if (ectx && eH) { const c = ectx.canvas; ectx.clearRect(0, 0, c.width, c.height); ectx.drawImage(canvas, 0, 0, c.width, c.height, 0, 0, c.width, c.height) }
   }
   return { frame }
 }

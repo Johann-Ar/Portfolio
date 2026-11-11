@@ -12,6 +12,7 @@ import { swapLanguage } from './lang-swap.js'
 import { HERO, updateHero } from './hero-progress.js'
 import { createLoader } from './loader.js'
 import { initBooks } from './book.js'
+import { initHighlights } from './hl.js'
 
 const root = document.documentElement
 root.classList.add('js')
@@ -137,12 +138,24 @@ document.addEventListener('click', (e) => {
   if (!card || e.target.closest('a')) return
   card.querySelector('a[href]')?.click()
 })
-// logo au-dessus d'une fiche : ferme la fiche et ramène tout en haut de l'accueil
+// retour à l'accueil par le logo : la page saute d'abord (sans animation) à la fin de la scène d'accueil, là où le gros
+// logo est devenu le petit logo de la barre, puis remonte en douceur : le petit logo refait l'animation à l'envers et
+// redevient le gros. Ease in-out quintique, durée selon la longueur de la scène.
+const easeIO = (t) => (t < 0.5 ? 16 * t ** 5 : 1 - Math.pow(-2 * t + 2, 5) / 2)
+function goHome() {
+  const end = hero ? Math.max(0, hero.offsetTop + hero.offsetHeight - innerHeight) : 0
+  if (!lenis || reduced) { scrollTo(0, 0); lenis?.scrollTo(0, { immediate: true, force: true }); return }
+  if (scrollY > end) lenis.scrollTo(end, { immediate: true, force: true })
+  const d = Math.min(scrollY, end)
+  lenis.scrollTo(0, { duration: Math.min(2.4, Math.max(1.1, 0.8 + d / 2400)), easing: easeIO, force: true, lock: true })
+}
+// logo au-dessus d'une fiche : ferme la fiche ; dessous, l'accueil est déjà à la fin de sa scène (le petit logo de la
+// barre, à la place exacte du logo de la fiche), et remonte pendant que la fiche glisse : le logo redevient le gros
 document.addEventListener('click', (e) => {
   if (!e.target.closest('.fiche-brand')) return
   e.preventDefault(); e.stopImmediatePropagation()
   history.pushState(null, '', '#top'); syncFiche()
-  lenis ? lenis.scrollTo(0, { immediate: true, force: true }) : scrollTo(0, 0)
+  goHome()
 }, true)
 document.addEventListener('click', (e) => {
   const a = e.target.closest('a[href^="#"]')
@@ -152,6 +165,7 @@ document.addEventListener('click', (e) => {
   if (!el) return
   e.preventDefault()
   history.pushState(null, '', '#' + id)
+  if (id === 'top') return goHome()
   // durée selon la distance (une longue remontée n'est pas plus brusque qu'une courte), courbe douce au départ et à
   // l'arrivée (ease in-out quintique) ; retour en haut (logo) : jusqu'à la toute première image de l'accueil
   const dist = Math.abs((id === 'top' ? 0 : el.getBoundingClientRect().top + scrollY) - scrollY)
@@ -791,6 +805,7 @@ addEventListener('popstate', () => { if (location.pathname !== shownPath) locati
 
 
 initBooks()
+initHighlights()
 
 // vidéos des fiches : chargées et lues seulement à l'écran (ou juste avant d'y entrer), en pause sinon ; fiche fermée
 // (display: none) = hors écran
