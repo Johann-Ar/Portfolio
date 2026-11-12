@@ -100,8 +100,8 @@ export function render(lang) {
       const [w, h] = sizes[x.src] || [1200, 800]
       // vidéo : lue seulement quand elle est à l'écran (main.js, data-lazy), sinon en pause
       const el = /\.mp4$/.test(x.src)
-        ? `<video src="${m(x.src)}"${x.poster ? ` poster="${m(x.poster)}"` : ''} width="${w}" height="${h}" muted loop playsinline preload="none" data-lazy aria-label="${esc(t(x.alt))}"></video>`
-        : `<img src="${m(x.src)}" alt="${esc(t(x.alt))}" width="${w}" height="${h}" loading="lazy" decoding="async">`
+        ? `<video src="${m(x.src)}"${x.poster ? ` poster="${m(x.poster)}"` : ''}${x.dark ? ` data-dark="${m(x.dark)}"` : ''}${x.posterDark ? ` data-dark-poster="${m(x.posterDark)}"` : ''} width="${w}" height="${h}" muted loop playsinline preload="none" data-lazy aria-label="${esc(t(x.alt))}"></video>`
+        : `<img src="${m(x.src)}"${x.dark ? ` data-dark="${m(x.dark)}"` : ''} alt="${esc(t(x.alt))}" width="${w}" height="${h}" loading="lazy" decoding="async">`
       return `<figure style="--r:${ratio(x).toFixed(4)}">${el}</figure>`
     }
     const ratio = (x) => x.ratio || format(...(sizes[x.src] || [1200, 800]))

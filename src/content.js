@@ -221,17 +221,18 @@ export const projects = [
     tools: 'Figma',
     credits: [],
     media: [
-      // contexte (en main, le parcours ouvert), puis le système (grille, images, typo, couleurs), puis le parcours fermé
-      { src: 'duo-news/main-prototype.webp', alt: T('Le journal Duo News tenu en main, iPhone Duo fermé', 'Duo News held in hand, iPhone Duo closed') },
+      // contexte (en main, le parcours ouvert), puis le système (grille, images, typo, couleurs), puis le parcours fermé ;
+      // dark / posterDark : la même image sur fond sombre, montrée en mode sombre (main.js)
+      { src: 'duo-news/main-prototype.webp', dark: 'duo-news/main-prototype-sombre.webp', alt: T('Le journal Duo News tenu en main, iPhone Duo fermé', 'Duo News held in hand, iPhone Duo closed') },
       { src: 'duo-news/mains-ouvert.webp', alt: T('Le journal ouvert en double page sur un iPhone Duo tenu à deux mains', 'The newspaper open as a double page on an iPhone Duo held in both hands') },
-      { src: 'duo-news/duo-news-ouvert.mp4', poster: 'duo-news/duo-news-ouvert-poster.webp', alt: T('Parcours du journal ouvert, de l’accueil à la fin de l’édition', 'Open newspaper flow, from home to the end of the edition') },
-      { src: 'duo-news/ouvert-une.webp', alt: T('Le journal ouvert en double page', 'The newspaper open as a double page'), layout: 'stack' },
-      { src: 'duo-news/ferme-trio.webp', alt: T('Trois pages du journal fermé', 'Three pages of the closed newspaper'), layout: 'stack' },
-      { src: 'duo-news/la-grille.webp', alt: T('La grille : 6 colonnes, ligne de base de 16 px', 'The grid: 6 columns, 16 px baseline') },
-      { src: 'duo-news/traitement-des-images.webp', alt: T('Le traitement des images en trichromie', 'Image processing in trichromy') },
-      { src: 'duo-news/les-styles-de-texte.webp', alt: T('Les styles de texte : trois familles, onze styles', 'Text styles: three typefaces, eleven styles'), layout: 'stack' },
-      { src: 'duo-news/les-couleurs.webp', alt: T('Les couleurs : trois thèmes, clair, confort et sombre', 'Colours: three themes, light, comfort and dark'), layout: 'stack' },
-      { src: 'duo-news/duo-news-ferme.mp4', poster: 'duo-news/duo-news-ferme-poster.webp', alt: T('Parcours du journal fermé, page par page', 'Closed newspaper flow, page by page') },
+      { src: 'duo-news/duo-news-ouvert.mp4', poster: 'duo-news/duo-news-ouvert-poster.webp', dark: 'duo-news/duo-news-ouvert-sombre.mp4', posterDark: 'duo-news/duo-news-ouvert-sombre-poster.webp', alt: T('Parcours du journal ouvert, de l’accueil à la fin de l’édition', 'Open newspaper flow, from home to the end of the edition') },
+      { src: 'duo-news/ouvert-une.webp', dark: 'duo-news/ouvert-une-sombre.webp', alt: T('Le journal ouvert en double page', 'The newspaper open as a double page'), layout: 'stack' },
+      { src: 'duo-news/ferme-trio.webp', dark: 'duo-news/ferme-trio-sombre.webp', alt: T('Trois pages du journal fermé', 'Three pages of the closed newspaper'), layout: 'stack' },
+      { src: 'duo-news/la-grille.webp', dark: 'duo-news/la-grille-sombre.webp', alt: T('La grille : 6 colonnes, ligne de base de 16 px', 'The grid: 6 columns, 16 px baseline') },
+      { src: 'duo-news/traitement-des-images.webp', dark: 'duo-news/traitement-des-images-sombre.webp', alt: T('Le traitement des images en trichromie', 'Image processing in trichromy') },
+      { src: 'duo-news/les-styles-de-texte.webp', dark: 'duo-news/les-styles-de-texte-sombre.webp', alt: T('Les styles de texte : trois familles, onze styles', 'Text styles: three typefaces, eleven styles'), layout: 'stack' },
+      { src: 'duo-news/les-couleurs.webp', dark: 'duo-news/les-couleurs-sombre.webp', alt: T('Les couleurs : trois thèmes, clair, confort et sombre', 'Colours: three themes, light, comfort and dark'), layout: 'stack' },
+      { src: 'duo-news/duo-news-ferme.mp4', poster: 'duo-news/duo-news-ferme-poster.webp', dark: 'duo-news/duo-news-ferme-sombre.mp4', posterDark: 'duo-news/duo-news-ferme-sombre-poster.webp', alt: T('Parcours du journal fermé, page par page', 'Closed newspaper flow, page by page') },
     ],
   },
   {

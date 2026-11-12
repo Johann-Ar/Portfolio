@@ -59,9 +59,27 @@ document.addEventListener('click', (e) => {
   if (!b) return
   const next = themeOf(b) === 'light' ? 'dark' : 'light'
   root.dataset.theme = next; root.classList.add('theme-chosen')   // pour cette visite seulement : au chargement suivant, accueil clair et fiches sombres
-  labelThemes(); applyThemeColor()
+  labelThemes(); applyThemeColor(); syncThemedMedia()
 })
-labelThemes(); applyThemeColor()
+// médias des fiches en deux versions (data-dark : même visuel sur fond sombre) : l'image ou la vidéo suit le mode du
+// site. La version claire est gardée dans data-light ; une vidéo en cours de lecture reprend aussitôt
+function syncThemedMedia() {
+  const dark = themeOf() === 'dark'
+  document.querySelectorAll('figure img[data-dark], figure video[data-dark]').forEach((el) => {
+    el.dataset.light ||= el.getAttribute('src')
+    const want = dark ? el.dataset.dark : el.dataset.light
+    if (el.getAttribute('src') === want) return
+    if (el.tagName === 'VIDEO') {
+      el.dataset.lightPoster ||= el.getAttribute('poster') || ''
+      const poster = dark ? el.dataset.darkPoster : el.dataset.lightPoster
+      const playing = !el.paused
+      if (poster) el.setAttribute('poster', poster)
+      el.setAttribute('src', want)
+      if (playing) el.play().catch(() => {})
+    } else el.setAttribute('src', want)
+  })
+}
+labelThemes(); applyThemeColor(); syncThemedMedia()
 
 /* Aspiration des images aux bords de l'écran (WebGL), sauf si l'utilisateur réduit les animations. */
 if (!reduced) root.classList.add('liquid')
