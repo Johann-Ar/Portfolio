@@ -65,7 +65,7 @@ uniform float uColor;   // 1 : points de la couleur de l'image (dégradé « En 
 uniform vec4 uScr;      // coin haut gauche de la vue à l'écran (px), taille de l'écran (px)
 uniform float uTime;
 uniform vec4 uMarkXf;   // accueil : monogramme, centre (px), hauteur (px), rotation (rad)
-uniform vec4 uEye;      // inutilisé (xy, zw)
+uniform vec4 uEye;      // renflement du S au survol : centre (unités du monogramme), ampleur (unités), rayon (unités)
 uniform vec3 uInk;      // encre du thème (S du monogramme)
 uniform float uEdgeFloor; // opacité au ras des bords latéraux de la piste (0 en clair : effacement complet)
 uniform float uHal;      // halation (fx-config.js)
@@ -102,11 +102,18 @@ vec4 halftoneS(vec2 p, vec2 off) {
     // anticrénelé au pixel de l'écran, net à toutes les tailles (pas d'image du logo agrandie)
     vec4 dc = texture2D(uMaskB, muv);
     float sdS = dc.r * 32.0 - 4.0, sdO = dc.g * 32.0 - 4.0;
+    // renflement du S sous le curseur (balle qui passe dans un collant) : le tracé s'épaissit localement, en cloche
+    // autour de la balle. Champ large (canal B, ±64 unités) là où le champ précis (R, −4 à 28) ne va pas assez loin
+    if (uEye.z > 0.01) {
+      vec2 bd = lp - uEye.xy;
+      float bump = uEye.z * exp(-dot(bd, bd) / (2.0 * uEye.w * uEye.w));
+      if (bump > 0.02) sdS = (sdS > -3.9 ? sdS : dc.b * 128.0 - 64.0) + bump;
+    }
     bool isO = sdO > sdS;
     float sd = max(sdS, sdO);
     // le champ de distance s'arrête à −4 unités : au-delà (valeur plafonnée), on est franchement dehors, même quand le
     // logo est si petit que 4 unités font moins d'un demi-pixel (sinon tout son rectangle se teinterait)
-    float cov = clamp(sd * upx * uDpr + 0.5, 0.0, 1.0) * step(-3.9, sd);
+    float cov = clamp(sd * upx * uDpr + 0.5, 0.0, 1.0) * step(-3.9, sd);   // (renflement : sd déjà relevé, la règle tient)
     if (cov < 0.001) return vec4(0.0);
     // aplat exact du kit (comme design/logo-kit/ref) : S à l'encre du thème, « o » : roue du kit ; bords nets, sans halo
     // roue du « o » : animation « flux » du kit (les couleurs respirent, rien ne tourne ; au repos : la roue finale)
@@ -573,7 +580,14 @@ export function createGL(canvas, { reduced }) {
 
   // masque du monogramme en espace local (816 × 1000) : le S en rouge, le « o » en vert. Dessiné une fois ;
   // le placement, la taille et la rotation sont appliqués dans le shader (uMarkXf).
-  // champ de distance signée du monogramme (brand/tools/sdf.mjs), chargé une fois
+  // champ de distance signée du monogramme (brand/tools/sdf.mjs), chargé une fois ; son canal B (S, ±64 unités) est aussi
+  // gardé côté CPU : distance du curseur au S (renflement au survol)
+  let sdfB = null
+  const sdS = (x, y) => {
+    if (!sdfB) return -64
+    const i = Math.round(Math.min(815, Math.max(0, x))) + Math.round(Math.min(999, Math.max(0, y))) * 816
+    return x < 0 || x > 816 || y < 0 || y > 1000 ? -64 : sdfB[i] * 128 / 255 - 64
+  }
   function maskFor(v) {
     if (v.maskB !== undefined) return v.maskReady
     v.maskB = null
@@ -585,6 +599,13 @@ export function createGL(canvas, { reduced }) {
       upload(t, im)
       gl.pixelStorei(gl.UNPACK_COLORSPACE_CONVERSION_WEBGL, gl.BROWSER_DEFAULT_WEBGL)
       v.maskB = t
+      try {
+        const c = document.createElement('canvas'); c.width = 816; c.height = 1000
+        const x = c.getContext('2d', { willReadFrequently: true, colorSpace: 'srgb' }); x.drawImage(im, 0, 0)
+        const d = x.getImageData(0, 0, 816, 1000).data, bch = new Uint8Array(816 * 1000)
+        for (let i = 0; i < bch.length; i++) bch[i] = d[i * 4 + 2]
+        sdfB = bch
+      } catch { /* sans lecture possible : pas de renflement */ }
     })
     const markSrc = new URL(document.querySelector('.brand__mark').src), sdfUrl = new URL('monogram-sdf.png', markSrc)
     sdfUrl.search = markSrc.search   // même version que le logo (?v=, render.js) : jamais l'ancienne carte en cache
@@ -643,6 +664,8 @@ export function createGL(canvas, { reduced }) {
   }
 
   let W = 0, H = 0, dpr = 1, cellScale = 1, lastSY = 0, scrollT = -1e9, docked = false, markDom = false, heroHi = hasMark, centerV = null, floatA = 0
+  // renflement du S (uEye) : balle qui suit le curseur avec un léger retard (unités du monogramme), ampleur 0 à 1
+  const bulge = { x: 0, y: 0, a: 0 }, BULGE_A = 34, BULGE_R = 62
   const PX_BUDGET = 2880 * 1800   // pixels de la toile au plus, au-delà de 2× (zoom du navigateur)
   const brandMark = document.querySelector('.topbar .brand')
   const heroEl = document.querySelector('.hero'), dockVals = {}
@@ -856,6 +879,14 @@ export function createGL(canvas, { reduced }) {
           FLOW.hoverTarget = hoverDevice && !ptr.touch && !reduced && Math.hypot(dx, dy) < oR ? 1 : 0
           FLOW.hoverX = ox; FLOW.hoverY = oy
           if (FLOW.hoverTarget) FLOW.hoverU = (((Math.atan2(dy, dx) * 180 / Math.PI + 90 - 180) / 360) % 1 + 1) % 1 }
+        // survol du S : position du curseur en unités du monogramme ; la balle n'agit que sur le tracé (shader : ampleur
+        // nulle loin du S, via le champ de distance à la position de la balle, ici sur le CPU par la carte lue une fois)
+        { const u = xf[2] / 1000, tx = (ptr.x - b.left - xf[0]) / u + MONO_W / 2, ty = (ptr.y - b.top - xf[1]) / u + 500
+          const near = hoverDevice && !ptr.touch && !reduced && !FLOW.hoverTarget && xf[4] >= 1 && sdS(tx, ty) > -BULGE_R * 0.5
+          if (bulge.a < 0.01) { bulge.x = tx; bulge.y = ty }   // nouvelle entrée : la balle part du curseur
+          bulge.x = follow(bulge.x, tx, 0.07, dt); bulge.y = follow(bulge.y, ty, 0.07, dt)
+          bulge.a = follow(bulge.a, near ? 1 : 0, near ? 0.18 : 0.35, dt)
+          sig.push(bulge.x, bulge.y, bulge.a) }
       }
       if (v.text) sig.push(`${Math.round(w)}x${Math.round(h)}@${dpr}:${document.fonts?.status}`)
       // écran tactile : la vignette est copiée dans sa propre image, qui défile toute seule avec la page. Son dessin ne
@@ -936,6 +967,8 @@ export function createGL(canvas, { reduced }) {
       if (v.mark) {
         gl.uniform3f(U.uInk, ...theme.ink)
         gl.uniform4f(U.uMarkXf, xf[0], xf[1], xf[2], xf[3]); gl.uniform1f(U.uReveal, xf[4])   // le S apparaît pendant le glissement
+        // ampleur en cloche douce (montée et retombée sans à-coup)
+        gl.uniform4f(U.uEye, bulge.x, bulge.y, BULGE_A * bulge.a * bulge.a * (3 - 2 * bulge.a), BULGE_R)
       }
       gl.drawArrays(gl.TRIANGLES, 0, 3)
       if (glassy) {

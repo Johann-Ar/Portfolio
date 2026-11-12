@@ -1,7 +1,9 @@
 // champ de distance signée du monogramme du logo-kit (design/logo-kit/svg/monogram-iris-dark.svg, tracés exacts du
 // Figma, mis à l'échelle de 1000 unités pour sa hauteur), pour le rendu WebGL de l'accueil (contour net à toutes tailles) :
-// node sdf.mjs [chromium] → public/media/monogram-sdf.png (816 × 1000, 1 px par unité ; R : S, V : « o »)
-// valeur = (distance signée en unités + 4) / 32 × 255, positive dedans. Calculée sur une trame 4× plus fine (distance
+// node sdf.mjs [chromium] → public/media/monogram-sdf.png (816 × 1000, 1 px par unité ; R : S, V : « o »,
+// B : S sur une plage large)
+// R, V : valeur = (distance signée en unités + 4) / 32 × 255, positive dedans (précis près du contour).
+// B : (distance signée du S + 64) / 128 × 255 : moins précis, mais va jusqu'à 64 unités dehors (renflement du S au survol, gl.js). Calculée sur une trame 4× plus fine (distance
 // exacte de Felzenszwalb, dedans et dehors), puis moyennée par blocs de 4 × 4 : les marches de la trame disparaissent.
 import { chromium } from 'playwright'
 import { readFileSync, writeFileSync } from 'node:fs'
@@ -39,7 +41,8 @@ const url = await p.evaluate(({ S_PATH, O_PATH, edt, VB }) => {
   const S = field(S_PATH, 'nonzero'), O = field(O_PATH, 'evenodd')
   const c = new OffscreenCanvas(W, H), x = c.getContext('2d'), img = x.createImageData(W, H)
   const enc = (v) => Math.round(Math.min(255, Math.max(0, (v + 4) / 32 * 255)))
-  for (let i = 0; i < W * H; i++) { img.data[i * 4] = enc(S[i]); img.data[i * 4 + 1] = enc(O[i]); img.data[i * 4 + 3] = 255 }
+  const encW = (v) => Math.round(Math.min(255, Math.max(0, (v + 64) / 128 * 255)))
+  for (let i = 0; i < W * H; i++) { img.data[i * 4] = enc(S[i]); img.data[i * 4 + 1] = enc(O[i]); img.data[i * 4 + 2] = encW(S[i]); img.data[i * 4 + 3] = 255 }
   x.putImageData(img, 0, 0)
   return c.convertToBlob({ type: 'image/png' }).then((bl) => new Promise((r) => { const f = new FileReader(); f.onload = () => r(f.result); f.readAsDataURL(bl) }))
 }, { S_PATH, O_PATH, edt, VB })
