@@ -160,12 +160,13 @@ document.addEventListener('click', (e) => {
 // entièrement affichée (avancée 0,86, voir plus bas : elle s'allume de 0,60 à 0,86)
 const HOME_P = 0.86
 const homeY = () => (hero ? hero.offsetTop + HOME_P * Math.max(0, hero.offsetHeight - innerHeight) : 0)
-// depuis l'accueil : la page remonte vite, comme un défilement rapide (départ franc, arrivée amortie)
+// depuis l'accueil : la page remonte vite, comme un défilement rapide lancé d'un coup (départ franc), puis ralentit
+// nettement jusqu'à l'arrêt (ease-out quintique)
 function goHome() {
   const y = homeY()
   if (!lenis || reduced) { scrollTo(0, y); lenis?.scrollTo(y, { immediate: true, force: true }); return }
   const d = Math.abs(scrollY - y)
-  lenis.scrollTo(y, { duration: Math.min(1.1, 0.45 + d / 9000), easing: (t) => 1 - Math.pow(1 - t, 3), force: true, lock: true })
+  lenis.scrollTo(y, { duration: Math.min(1.6, 0.7 + d / 6000), easing: (t) => 1 - Math.pow(1 - t, 5), force: true, lock: true })
 }
 // depuis une fiche : le petit logo s'efface en fondu ; la fiche se retire et dévoile l'accueil déjà placé au même instant
 let brandFadeT = 0
@@ -516,8 +517,8 @@ if (!heroWords.length) root.classList.add('hero-done')   // pages sans accueil :
 let heroOn = -1
 const wordsSvg = [...document.querySelectorAll('.hero .studio__word')]
 // nom de l'accueil en « balayage » (src/logotype-svg.js) : trois copies (très floue, un peu floue, nette) découvertes
-// par des dégradés ; pour chaque arrêt (position xn de 0 à 1 sur le mot), l'avancée locale s (0 : rien, 1 : net et
-// plein) suit une bande qui va de gauche à droite, plafonnée par la retenue (rien n'est entièrement net avant la fin)
+// par des dégradés ; pour chaque arrêt (xn : distance au centre du mot, de 0 à 1), l'avancée locale s (0 : rien, 1 : net et
+// plein) suit une bande qui part du centre vers les deux côtés, plafonnée par la retenue (rien n'est entièrement net avant la fin)
 const sweeps = wordsSvg.filter((w) => w.dataset.bande).map((el) => ({ el, stops: [...el.querySelectorAll('.bal-g')].map((g) => [...g.querySelectorAll('stop')]),
   b: +el.dataset.bande, r: +el.dataset.retenue, last: -1, cv: reduced ? null : sweepCanvas(el) }))
 // poids des trois copies pour une avancée s : de la très floue à la nette ; leur somme vaut s (l'opacité)
@@ -530,7 +531,8 @@ function sweep(draw) {
     const n = sw.stops[0].length, cap = 1 - sw.r + sw.r * a
     const ws = [new Array(n), new Array(n), new Array(n)]
     for (let i = 0; i < n; i++) {
-      const xn = i / (n - 1), s = Math.min(1, Math.max(0, (a * (1 + sw.b) - xn) / sw.b)) * cap, w = sweepW(s)
+      // du centre vers les côtés : xn = distance au centre du mot (0 au centre, 1 aux deux bords)
+      const xn = Math.abs(i / (n - 1) - 0.5) * 2, s = Math.min(1, Math.max(0, (a * (1 + sw.b) - xn) / sw.b)) * cap, w = sweepW(s)
       for (let k = 0; k < 3; k++) ws[k][i] = +w[k].toFixed(3)
     }
     // balayage en cours : copies floues dessinées dans le canvas (sweep-canvas.js : même calcul, sans filtres ni masques

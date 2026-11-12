@@ -8,7 +8,7 @@
  *
  * - decoratif : quand le texte est déjà lu ailleurs (titre caché pour lecteurs d'écran) → aria-hidden, sans <title>.
  * - empile    : JOHANN au-dessus de ARATA, centrés (accueil sur mobile).
- * - balayage  : apparition de gauche à droite où chaque endroit du mot passe, à son tour, de flou et transparent à net
+ * - balayage  : apparition du centre vers les côtés où chaque endroit du mot passe, à son tour, de flou et transparent à net
  *               et plein (comme les mots des textes, mais en continu). Trois copies du mot (très floue, un peu floue,
  *               nette), chacune découverte par un masque en dégradé (ARRETS arrêts répartis sur la largeur du mot) ;
  *               main.js (sweep) recalcule l'opacité de chaque arrêt selon l'avancée (data-bande, data-retenue). Une
