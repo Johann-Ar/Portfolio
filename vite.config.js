@@ -86,7 +86,9 @@ function themeHead() {
       // page jamais visible sans sa feuille de style (connexion lente, fichier CSS en échec, rechargement en développement) :
       // seulement le fond, jusqu'à ce que styles.css rende le contenu visible (body { visibility: visible })
       // (fond posé sur body, pas sur html : celui de body doit rester le fond de la fenêtre, sous les calques en z-index négatif)
-      const guard = `<style>body{background:${colors.bgLight};visibility:hidden}</style>`
+      // :where(body) : spécificité nulle, la feuille de style l'emporte où qu'elle soit (dans la version compilée, son <link>
+      // est placé avant cette règle)
+      const guard = `<style>:where(body){background:${colors.bgLight};visibility:hidden}</style>`
       return html.replace('</head>', `  ${meta}\n  ${guard}\n  ${boot}\n</head>`)
     },
   }
