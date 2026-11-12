@@ -96,18 +96,23 @@ vec4 halftoneS(vec2 p, vec2 off) {
     // accueil : le monogramme du kit en aplat (S à l'encre du thème, « o » : roue du kit)
     float upx = uMarkXf.z / 1000.0;                       // px par unité
     vec2 lp = (p - uMarkXf.xy) / upx + vec2(uMono.x * 0.5, 500.0);
-    vec2 muv = lp / vec2(816.0, 1000.0);                  // champ de distance : 816 × 1000 px, 1 px par unité
-    if (muv.x < 0.0 || muv.x > 1.0 || muv.y < 0.0 || muv.y > 1.0) return vec4(0.0);
+    // champ de distance : 816 × 1000 px, 1 px par unité. Hors du cadre : rien, sauf pendant un renflement, qui peut en
+    // déborder (le S frôle le haut et la gauche du cadre) : distance lue au bord le plus proche, moins l'écart au cadre
+    vec2 lpc = clamp(lp, vec2(0.0), vec2(816.0, 1000.0));
+    float outD = length(lp - lpc);
+    if (outD > 0.0 && uEye.z <= 0.01) return vec4(0.0);
+    vec2 muv = lpc / vec2(816.0, 1000.0);
     // champ de distance signée (monogram-sdf.png, en unités, positif dedans ; S en r, « o » en g) : le contour est
     // anticrénelé au pixel de l'écran, net à toutes les tailles (pas d'image du logo agrandie)
     vec4 dc = texture2D(uMaskB, muv);
     float sdS = dc.r * 32.0 - 4.0, sdO = dc.g * 32.0 - 4.0;
+    if (outD > 0.0) { sdS = -4.0; sdO = -4.0; }   // hors du cadre : dehors (seul le renflement peut y mordre)
     // renflement du S sous le curseur (balle qui passe dans un collant) : le tracé s'épaissit localement, en cloche
     // autour de la balle. Champ large (canal B, ±64 unités) là où le champ précis (R, −4 à 28) ne va pas assez loin
     if (uEye.z > 0.01) {
       vec2 bd = lp - uEye.xy;
       float bump = uEye.z * exp(-dot(bd, bd) / (2.0 * uEye.w * uEye.w));
-      if (bump > 0.02) sdS = (sdS > -3.9 ? sdS : dc.b * 128.0 - 64.0) + bump;
+      if (bump > 0.02) sdS = (sdS > -3.9 && outD == 0.0 ? sdS : dc.b * 128.0 - 64.0 - outD) + bump;
     }
     bool isO = sdO > sdS;
     float sd = max(sdS, sdO);
@@ -879,8 +884,8 @@ export function createGL(canvas, { reduced }) {
           FLOW.hoverTarget = hoverDevice && !ptr.touch && !reduced && Math.hypot(dx, dy) < oR ? 1 : 0
           FLOW.hoverX = ox; FLOW.hoverY = oy
           if (FLOW.hoverTarget) FLOW.hoverU = (((Math.atan2(dy, dx) * 180 / Math.PI + 90 - 180) / 360) % 1 + 1) % 1 }
-        // survol du S : position du curseur en unités du monogramme ; la balle n'agit que sur le tracé (shader : ampleur
-        // nulle loin du S, via le champ de distance à la position de la balle, ici sur le CPU par la carte lue une fois)
+        // survol du S : position du curseur en unités du monogramme ; la balle n'agit que sur le tracé ou tout près
+        // (distance au S : carte lue une fois sur le CPU) ; sur le « o », seul son effet de couleur joue
         { const u = xf[2] / 1000, tx = (ptr.x - b.left - xf[0]) / u + MONO_W / 2, ty = (ptr.y - b.top - xf[1]) / u + 500
           const near = hoverDevice && !ptr.touch && !reduced && !FLOW.hoverTarget && xf[4] >= 1 && sdS(tx, ty) > -BULGE_R * 0.5
           if (bulge.a < 0.01) { bulge.x = tx; bulge.y = ty }   // nouvelle entrée : la balle part du curseur
