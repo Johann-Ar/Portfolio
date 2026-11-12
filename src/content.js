@@ -70,6 +70,7 @@ export const ui = {
 export const projects = [
   {
     slug: '4derives',
+    hidden: true,   // masqué pour l'instant (vignette et fiche)
     research: true,   // présenté seulement dans Recherche (avec ses essais 4DGS)
     genre: T('4D Gaussian splatting', '4D Gaussian splatting'),   // à côté du titre : l'outil ou la technique, pas une description du projet
     title: '4Dérives',
@@ -347,6 +348,7 @@ export const research = {
     },
     {
       // 4Dérives et les essais 4DGS : un seul travail (le film et ses essais en 4D Gaussian splatting)
+      hidden: true,   // masqué pour l'instant
       kind: T('Film et 4D Gaussian splatting', 'Film and 4D Gaussian splatting'), when: '2025-26',
       title: T('4Dérives', '4Dérives'),
       text: T('Une descente de rivière filmée en GoPro sur trois saisons, et ses essais en 4D Gaussian splatting (Luma AI) qui prolongent l’espace hors du cadre. Ils montrent les limites des outils accessibles aujourd’hui.', 'A river descent filmed on a GoPro across three seasons, and its 4D Gaussian splatting tests (Luma AI) that extend the space beyond the frame. They show the limits of today’s accessible tools.'),

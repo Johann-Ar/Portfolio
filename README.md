@@ -22,8 +22,8 @@ npm run todo      # liste des textes encore à fournir dans src/content.js
 - Rendu : WebGL maison, sans bibliothèque 3D (`src/gl.js` : trame de points, vignettes en verre, lentille « o » ;
   `src/backdrop.js` : fond). Une image identique à la précédente n’est pas redessinée.
 - Logotypes HOLOSENE et JOHANN ARATA (pack vectoriel exporté de Figma) : `public/logotypes/` (svg, lettres seules,
-  png), composant `src/logotype-svg.js` (SVG dans la page, une forme par lettre ou par morceau soudé, couleur = `color`), animations
-  `src/logotype-animations.css` et `src/logotype.js`. Accueil : JOHANN ARATA (une ligne, ou deux sur mobile) ;
+  png), composant `src/logotype-svg.js` (SVG dans la page, une forme par lettre ou par morceau soudé, couleur = `color`), style
+  `src/logotype.css`. Accueil : JOHANN ARATA (une ligne, ou deux sur mobile) ;
   pied de page : JOHANN ARATA au centre (sans animation).
 - CV : le bouton « Curriculum vitae » du contact télécharge `public/cv/johann-arata-cv.pdf` (chemin dans `src/content.js`,
   `site.cv`) : y déposer le PDF.

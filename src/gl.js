@@ -28,7 +28,8 @@ const MONO_W = MONO_VB[2] * MONO_U                                              
 const MONO_O = [(KIT.ring.center[0] - MONO_VB[0]) * MONO_U, (KIT.ring.center[1] - MONO_VB[1]) * MONO_U]   // centre du « o »
 
 const O_OFF = [(MONO_O[0] - MONO_W / 2) / 1000, (MONO_O[1] - 500) / 1000], O_R = KIT.ring.outerRadius * MONO_U / 1000
-const bigOf = (w, h) => Math.min(h * (w < 760 ? 0.34 : 0.46), w * (w < 760 ? 0.38 : 0.6) * 1000 / 816)   // taille du logo au début de l'accueil (mobile : plus petit)
+const BIG_MAX = 420   // px : plafond du gros logo sur les grands écrans
+const bigOf = (w, h) => Math.min(BIG_MAX, h * (w < 760 ? 0.34 : 0.46), w * (w < 760 ? 0.38 : 0.6) * 1000 / 816)   // taille du logo au début de l'accueil (mobile : plus petit)
 const handoffR = (w, h) => Math.min(44, bigOf(w, h) * O_R * (w < 760 ? 0.75 : 0.62))   // rayon du « o » au relais avec le chargeur (px ; mobile : chargeur un peu plus grand)
 /** Rayon du « o » au relais avec le chargeur (px CSS) : connu avant même de créer le contexte WebGL. */
 export const loaderRadius = () => handoffR(innerWidth, innerHeight)
@@ -598,7 +599,6 @@ export function createGL(canvas, { reduced }) {
   function markXf(w, h, p, ms, slot, oc, dock) {
     const k = (a, b) => Math.min(1, Math.max(0, (p - a) / (b - a))), e = (x) => 1 - Math.pow(1 - x, 3)
     const io = (x) => (x <= 0 ? 0 : x >= 1 ? 1 : x < 0.5 ? 4 * x * x * x : 1 - Math.pow(2 - 2 * x, 3) / 2)
-    const small = w < 760
     const big = bigOf(w, h)
     // fin : à sa place dans la composition de l'accueil (.hero__slot, au-dessus du nom et de la présentation)
     const q = e(k(0, 0.54))   // le logo rejoint sa place (même découpage que main.js : scène sans temps mort)
@@ -785,9 +785,6 @@ export function createGL(canvas, { reduced }) {
       if (v.video && !v.video.paused && v.video.readyState >= 2) { upload(v.tex, v.video); sig.push(NaN) }   // nouvelle image de la vidéo : toujours redessiner
       if (!v.seen) { if (!document.documentElement.classList.contains('is-loaded')) continue; v.seen = now }
       const w = b.width, h = b.height
-      // apparition : les points poussent, puis rétrécissent quand la vue sort de l'écran
-      const intro = reduced ? 1 : Math.min(1, (now - v.seen) / 1600)
-      const vis = Math.min(1, Math.max(0, Math.min(H - b.top, b.bottom) / (H * 0.6)))
       const reveal = 1   // vignettes : trame toujours complète (plus d'apparition ni de disparition en noir)
       if (v.mark) { maskFor(v); if (!v.maskB) continue }
       // la vignette sous le « o » passe en couleur en même temps que lui (aussi pendant le défilement : tout de suite)
@@ -857,6 +854,7 @@ export function createGL(canvas, { reduced }) {
         { const oR = O_R * xf[2] * 1.3, ox = b.left + xf[0] + O_OFF[0] * xf[2], oy = b.top + xf[1] + O_OFF[1] * xf[2]
           const dx = ptr.x - ox, dy = ptr.y - oy
           FLOW.hoverTarget = hoverDevice && !ptr.touch && !reduced && Math.hypot(dx, dy) < oR ? 1 : 0
+          FLOW.hoverX = ox; FLOW.hoverY = oy
           if (FLOW.hoverTarget) FLOW.hoverU = (((Math.atan2(dy, dx) * 180 / Math.PI + 90 - 180) / 360) % 1 + 1) % 1 }
       }
       if (v.text) sig.push(`${Math.round(w)}x${Math.round(h)}@${dpr}:${document.fonts?.status}`)

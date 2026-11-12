@@ -83,7 +83,11 @@ function themeHead() {
       // système ; le bouton Clair / Sombre ne vaut que pour la visite (main.js). Les anciens choix mémorisés par une
       // version précédente du site (theme, site-theme) sont effacés : ils faisaient démarrer certains téléphones en sombre
       const boot = `<script>try{localStorage.removeItem('theme');localStorage.removeItem('site-theme')}catch(e){}try{history.scrollRestoration='manual';var n=performance.getEntriesByType&&performance.getEntriesByType('navigation')[0];if(location.hash&&(!/^#p-/.test(location.hash)||(n&&n.type==='reload')))history.replaceState(null,'',location.pathname+location.search)}catch(e){}</script>`   // + rechargement : toujours l'accueil, en haut (ni position mémorisée, ni ancre, ni fiche ouverte) ; un lien direct vers une fiche #p-… l'ouvre toujours
-      return html.replace('</head>', `  ${meta}\n  ${boot}\n</head>`)
+      // page jamais visible sans sa feuille de style (connexion lente, fichier CSS en échec, rechargement en développement) :
+      // seulement le fond, jusqu'à ce que styles.css rende le contenu visible (body { visibility: visible })
+      // (fond posé sur body, pas sur html : celui de body doit rester le fond de la fenêtre, sous les calques en z-index négatif)
+      const guard = `<style>body{background:${colors.bgLight};visibility:hidden}</style>`
+      return html.replace('</head>', `  ${meta}\n  ${guard}\n  ${boot}\n</head>`)
     },
   }
 }

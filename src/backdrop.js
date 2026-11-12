@@ -8,6 +8,7 @@
  */
 import KIT_IRIS from '../design/logo-kit/src/iris.glsl?raw'
 import { FX } from './fx-config.js'
+import { FLOW } from './flow.js'
 
 const N = 14   // nombre de formes réparties dans la page
 // couleurs des formes : positions sur la roue v2 du kit (0 cyan, 0,1 bleu, 0,2 indigo, 0,3 violet, 0,4 magenta, 0,5 rose,
@@ -23,6 +24,8 @@ uniform vec3 uPage;     // --bg du thème
 uniform float uLight;   // 1 : mode clair
 uniform vec3 uPtr;      // curseur (px CSS, dans la fenêtre), présence (0 à 1)
 uniform float uPtrHue;  // teinte du halo du curseur (position sur la roue)
+uniform vec3 uWash;     // survol du « o » : centre (px CSS), intensité (0 à 1)
+uniform vec3 uWashCol;  // couleur survolée (celle affichée sous le curseur)
 uniform vec4 uB[${N}];  // formes : centre (px CSS, dans la page), rayon (px), position sur la roue (0 à 1)
 uniform float uA[${N}]; // intensité de chaque forme (cycle de vie : naît, s'intensifie, s'éteint)
 ${KIT_IRIS}
@@ -42,11 +45,18 @@ void main() {
     vec4 b = uB[i];
     vec2 d = (w - b.xy) / b.z;
     float k = exp(-dot(d, d) * mix(1.0, 1.9, P));   // plus près de la plaque : bord plus net
-    col = mix(col, irisAt(b.w), clamp(k * amp * uA[i], 0.0, 0.7));
+    // survol du « o » : toutes les formes prennent temporairement la couleur survolée (retour doux à leur couleur)
+    vec3 c = mix(irisAt(b.w), uWashCol, uWash.z * 0.85);
+    col = mix(col, c, clamp(k * amp * uA[i], 0.0, 0.7));
   }
   // halo du curseur : même sur une zone neutre, une tache douce de la même famille que les formes (même roue, même
   // dégradé gaussien, intensité comparable) ; sa teinte est celle de la forme la plus proche (uPtrHue, lissée)
   col = mix(col, irisAt(uPtrHue), clamp(P * mix(0.09, 0.18, uLight), 0.0, 0.7));
+  // survol du « o » du logo : un halo léger de la couleur survolée autour du « o » (pas sur tout le fond) ; il suit la
+  // couleur sous le curseur et s'efface doucement quand le survol s'arrête
+  float WR = min(uRes.x, uRes.y) * 0.32;
+  float wk = exp(-dot(s - uWash.xy, s - uWash.xy) / (2.0 * WR * WR));
+  col = mix(col, uWashCol, clamp(uWash.z * 0.14 * wk * mix(0.8, 1.0, uLight), 0.0, 0.6));
   col += (hash(gl_FragCoord.xy) - 0.5) / 255.0;   // tramage invisible (±0,5/255) : pas de bandes dans les dégradés
   gl_FragColor = vec4(col, 1.0);
 }`
@@ -65,7 +75,7 @@ export function createBackdrop(canvas, { reduced }) {
   gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer())
   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW)
   gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0)
-  const U = {}; for (const n of ['uRes', 'uDpr', 'uScroll', 'uPage', 'uLight', 'uPtr', 'uPtrHue', 'uB', 'uA']) U[n] = gl.getUniformLocation(prog, n)
+  const U = {}; for (const n of ['uRes', 'uDpr', 'uScroll', 'uPage', 'uLight', 'uPtr', 'uPtrHue', 'uWash', 'uWashCol', 'uB', 'uA']) U[n] = gl.getUniformLocation(prog, n)
 
   // thème : --bg du site, relu quand le mode change
   const root = document.documentElement
@@ -88,6 +98,8 @@ export function createBackdrop(canvas, { reduced }) {
 
   // curseur : suivi amorti ; présence qui s'efface quand la souris ne bouge plus (jamais au doigt)
   const ptr = { x: -1e4, y: -1e4, tx: -1e4, ty: -1e4, a: 0, last: -1e9 }
+  // survol du « o » (FLOW.hover*, gl.js, flow.js) : intensité montée en 0,4 s, effacée en 1,6 s ; couleur lissée
+  const wash = { a: 0, rgb: [0, 0, 0] }
   addEventListener('pointermove', (e) => { if (e.pointerType === 'touch') return; ptr.tx = e.clientX; ptr.ty = e.clientY; if (ptr.a < 0.01) { ptr.x = ptr.tx; ptr.y = ptr.ty } ptr.last = performance.now() }, { passive: true })
   document.addEventListener('pointerleave', () => { ptr.last = -1e9 })
 
@@ -117,6 +129,17 @@ export function createBackdrop(canvas, { reduced }) {
     const size = () => { eH = edge.offsetHeight; ec.width = Math.max(1, Math.round(W * dpr)); ec.height = Math.max(1, Math.ceil(eH * dpr)) }
     size(); new ResizeObserver(size).observe(edge); addEventListener('resize', size)
   }
+  // voile de la barre du haut (mode clair, .topbar__glass) : même principe, une copie du fond au lieu d'un voile blanc. Les
+  // liens restent lisibles au-dessus des vignettes et des formes sombres (elles sont recouvertes par le fond), sans que
+  // les couleurs du fond soient blanchies
+  const glass = document.querySelector('.topbar > .topbar__glass')
+  let gctx = null, gH = 0, gTop = 0
+  if (glass) {
+    const gc = document.createElement('canvas'); gc.className = 'topbar__bg'; glass.prepend(gc); glass.classList.add('glass--live')
+    gctx = gc.getContext('2d')
+    const size = () => { gH = glass.offsetHeight; gTop = glass.getBoundingClientRect().top; gc.width = Math.max(1, Math.round(W * dpr)); gc.height = Math.max(1, Math.ceil(gH * dpr)) }
+    size(); new ResizeObserver(size).observe(glass); addEventListener('resize', size)
+  }
 
   function frame(now) {
     const dt = Math.min(0.05, (now - prev) / 1000); prev = now
@@ -135,8 +158,8 @@ export function createBackdrop(canvas, { reduced }) {
       let age = clock - s.born
       if (age >= s.life) { spawn(s, clock); age = 0 }
       const env = Math.sin(Math.PI * age / s.life); A[i] = env * env
-      // dérive lente (période de l'ordre de la minute), dans un rayon d'un quart de largeur
-      const a = time * 0.05 * s.sp + s.ph
+      // dérive (période de 40 s à 1 min 30), dans un rayon d’un quart de largeur
+      const a = time * 0.12 * s.sp + s.ph
       B[i * 4] = s.fx * W + Math.sin(a) * W * 0.18
       B[i * 4 + 1] = s.fy * span + Math.cos(a * 0.8) * H * 0.22
       B[i * 4 + 2] = base * s.r
@@ -160,11 +183,19 @@ export function createBackdrop(canvas, { reduced }) {
     for (let i = 0; i < N; i++) { const dx = (ptr.x - B[i * 4]) / B[i * 4 + 2], dy = (py - B[i * 4 + 1]) / B[i * 4 + 2], k = A[i] * Math.exp(-(dx * dx + dy * dy)); if (k > best) { best = k; if (k > 0.04) hueT = B[i * 4 + 3] } }
     const dh = ((hueT - hue + 1.5) % 1) - 0.5
     hue = (hue + dh * (1 - Math.exp(-dt / 0.8)) + 1) % 1
+    const wOn = FLOW.hoverTarget ? 1 : 0
+    wash.a += (wOn - wash.a) * (1 - Math.exp(-dt / (wOn ? 0.4 : 1.6)))
+    if (wOn) {   // couleur affichée sous le curseur (FLOW.hoverRGB), suivie en douceur
+      const k = wash.a < 0.02 ? 1 : 1 - Math.exp(-dt / 0.25)
+      wash.rgb = wash.rgb.map((v, c) => v + (FLOW.hoverRGB[c] - v) * k)
+    }
+    gl.uniform3f(U.uWash, FLOW.hoverX, FLOW.hoverY, wash.a); gl.uniform3f(U.uWashCol, ...wash.rgb)
     gl.uniform3f(U.uPtr, ptr.x, ptr.y, ptr.a); gl.uniform1f(U.uPtrHue, hue); gl.uniform4fv(U.uB, B); gl.uniform1fv(U.uA, A)
     // formes du fond partagées avec les zones floues (vignettes WebGL, bandes CSS) : leur teinte vient du fond, et défile avec lui
     FX.bg.B = B; FX.bg.A = A; FX.bg.n = N; FX.bg.scroll = Math.max(0, scrollY - pin)
     gl.drawArrays(gl.TRIANGLES, 0, 3)
     // copie dans la même image que le rendu (le tampon WebGL est encore là) : bande du haut de l'écran
+    if (gctx && gH && glass.offsetParent) { const c = gctx.canvas, y = Math.round(gTop * dpr); gctx.clearRect(0, 0, c.width, c.height); gctx.drawImage(canvas, 0, y, c.width, c.height, 0, 0, c.width, c.height) }
     if (ectx && eH) { const c = ectx.canvas; ectx.clearRect(0, 0, c.width, c.height); ectx.drawImage(canvas, 0, 0, c.width, c.height, 0, 0, c.width, c.height) }
   }
   return { frame }

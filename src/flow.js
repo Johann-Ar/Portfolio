@@ -26,6 +26,8 @@ export const FLOW = {
   loaderNeeds: false, // (chargeur en CSS : n'utilise plus la texture)
   hoverTarget: 0,   // 1 quand le curseur survole le « o » du logo (gl.js)
   hoverU: 0,        // position du curseur sur la roue (0 en bas, sens horaire)
+  hoverX: 0, hoverY: 0, // centre du « o » à l'écran (px CSS) : le fond s'y teinte de la couleur survolée (backdrop.js)
+  hoverRGB: [0, 0, 0], // couleur réellement affichée sous le curseur (0 à 1), lue dans la roue déformée
   frozen: false,    // panneau ?debug=iris : roue finale (amount = 0)
   cpuMs: 0,         // temps de calcul de la dernière texture (mesure)
   t0,               // début de la montée du flux (fixé au relais du chargeur)
@@ -74,6 +76,7 @@ export function updateFlow(now) {
     const i0 = Math.floor(x), f = x - i0, a = i0 % N, b2 = (a + 1) % N
     for (let c = 0; c < 3; c++) FLOW.lut[i * 4 + c] = Math.round(tmp[a * 3 + c] + (tmp[b2 * 3 + c] - tmp[a * 3 + c]) * f)
   }
+  { const i = Math.floor(focus * N) % N; FLOW.hoverRGB = [0, 1, 2].map((c) => FLOW.lut[i * 4 + c] / 255) }
   FLOW.cpuMs = performance.now() - s
   FLOW.version++
   lastAmount = amount

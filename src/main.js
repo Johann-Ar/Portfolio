@@ -1,6 +1,6 @@
 import 'virtual:iris.css'
 import './styles.css'
-import './logotype-animations.css'
+import './logotype.css'
 import { FLOW, updateFlow } from './flow.js'
 import Lenis from 'lenis'
 import { createGL, loaderRadius } from './gl.js'
@@ -156,24 +156,27 @@ document.addEventListener('click', (e) => {
   if (!card || e.target.closest('a')) return
   card.querySelector('a[href]')?.click()
 })
-// retour à l'accueil par le logo : la page saute d'abord (sans animation) à la fin de la scène d'accueil, là où le gros
-// logo est devenu le petit logo de la barre, puis remonte en douceur : le petit logo refait l'animation à l'envers et
-// redevient le gros. Ease in-out quintique, durée selon la longueur de la scène.
-const easeIO = (t) => (t < 0.5 ? 16 * t ** 5 : 1 - Math.pow(-2 * t + 2, 5) / 2)
+// retour à l'accueil par le logo : jusqu'à l'instant de la scène d'accueil où la présentation vient tout juste d'être
+// entièrement affichée (avancée 0,86, voir plus bas : elle s'allume de 0,60 à 0,86)
+const HOME_P = 0.86
+const homeY = () => (hero ? hero.offsetTop + HOME_P * Math.max(0, hero.offsetHeight - innerHeight) : 0)
+// depuis l'accueil : la page remonte vite, comme un défilement rapide (départ franc, arrivée amortie)
 function goHome() {
-  const end = hero ? Math.max(0, hero.offsetTop + hero.offsetHeight - innerHeight) : 0
-  if (!lenis || reduced) { scrollTo(0, 0); lenis?.scrollTo(0, { immediate: true, force: true }); return }
-  if (scrollY > end) lenis.scrollTo(end, { immediate: true, force: true })
-  const d = Math.min(scrollY, end)
-  lenis.scrollTo(0, { duration: Math.min(2.4, Math.max(1.1, 0.8 + d / 2400)), easing: easeIO, force: true, lock: true })
+  const y = homeY()
+  if (!lenis || reduced) { scrollTo(0, y); lenis?.scrollTo(y, { immediate: true, force: true }); return }
+  const d = Math.abs(scrollY - y)
+  lenis.scrollTo(y, { duration: Math.min(1.1, 0.45 + d / 9000), easing: (t) => 1 - Math.pow(1 - t, 3), force: true, lock: true })
 }
-// logo au-dessus d'une fiche : ferme la fiche ; dessous, l'accueil est déjà à la fin de sa scène (le petit logo de la
-// barre, à la place exacte du logo de la fiche), et remonte pendant que la fiche glisse : le logo redevient le gros
+// depuis une fiche : le petit logo s'efface en fondu ; la fiche se retire et dévoile l'accueil déjà placé au même instant
+let brandFadeT = 0
 document.addEventListener('click', (e) => {
   if (!e.target.closest('.fiche-brand')) return
   e.preventDefault(); e.stopImmediatePropagation()
+  root.classList.add('brand-fade'); clearTimeout(brandFadeT)
+  brandFadeT = setTimeout(() => root.classList.remove('brand-fade'), 1000)
   history.pushState(null, '', '#top'); syncFiche()
-  goHome()
+  const y = homeY()
+  lenis ? lenis.scrollTo(y, { immediate: true, force: true }) : scrollTo(0, y)
 }, true)
 document.addEventListener('click', (e) => {
   const a = e.target.closest('a[href^="#"]')
@@ -506,7 +509,7 @@ function showCard(card) {
   workFrame()
 }
 
-/* À propos : le logotype se trace puis se remplit ; les grands textes s'allument mot à mot au défilement. */
+/* Accueil : le nom apparaît en balayage, la présentation s'allume ; les grands textes s'allument mot à mot au défilement. */
 const hero = document.querySelector('.hero')
 let heroWords = [...document.querySelectorAll('.hero__line .w')]
 if (!heroWords.length) root.classList.add('hero-done')   // pages sans accueil : tout est visible d'emblée
@@ -539,10 +542,6 @@ function sweep(draw) {
     sw.el.classList.toggle('bal-net', a >= 1)   // entièrement net : les copies floues ne sont plus calculées
   }
 }
-// chaque moitié du logotype (HOLO / SENE) cadrée sur ses lettres
-// même hauteur de cadre pour les deux (celle de HOLO, avec ses capitales) : les lettres gardent la même échelle
-
-const word = null
 // textes des sections : apparition mot à mot quand ils arrivent à l'écran, une seule fois par chargement de page
 // une section = une seule séquence, dans l'ordre de lecture : le rang des mots se poursuit d'un paragraphe à l'autre
 // (chaque mot attend le précédent), et toute la séquence démarre quand son premier paragraphe arrive à l'écran
@@ -609,7 +608,6 @@ function scrollWords(vh, sy = scrollY) {
 const foot = document.querySelector('.foot')
 let footPush = -1
 let edgeBottom = null
-const wordsVals = new WeakMap()
 // une image = toutes les lectures de mise en page d'abord, puis toutes les écritures : une lecture après une écriture
 // force le navigateur à recalculer styles et mise en page au milieu de l'image (Chrome l'absorbe, Safari saccade)
 function scrollEffects() {
@@ -645,14 +643,6 @@ function scrollEffects() {
   // le nom existe en deux versions (une ligne / deux lignes sur mobile) : même avancée pour les deux
   // le nom apparaît tôt et sur une longue course ; il est entièrement net avant que la présentation commence (0,6)
   const p = k(0.12, 0.5)
-  const draw = (1 - Math.min(1, p * 1.2)).toFixed(3), fill = Math.min(1, Math.max(0, (p - 0.4) / 0.6)).toFixed(3)
-  wordsSvg.forEach((w) => {
-    const prev = wordsVals.get(w)
-    if (prev && prev[0] === draw && prev[1] === fill) return   // inchangé : aucune écriture (pas de restyle inutile)
-    wordsVals.set(w, [draw, fill])
-    w.style.setProperty('--draw', draw)
-    w.style.setProperty('--fill', fill)
-  })
   sweep(1 - Math.min(1, p * 1.2))
   wordBlocks.forEach((b, j) => {
     const r = blockRects[j]
@@ -668,7 +658,7 @@ function scrollEffects() {
     if (lead) { const v = f.toFixed(3); if (lead.dataset.f !== v) { lead.dataset.f = v; lead.style.setProperty('--f', v) } }
   })
 }
-if (reduced) { root.classList.add('hero-done', 'bar-on'); heroWords.forEach((w) => w.classList.add('on')); wordsSvg.forEach((w) => w.style.setProperty('--draw', 0)); sweep(0); wordBlocks.forEach((b) => b.words.forEach((w) => w.classList.add('on'))) }
+if (reduced) { root.classList.add('hero-done', 'bar-on'); heroWords.forEach((w) => w.classList.add('on')); sweep(0); wordBlocks.forEach((b) => b.words.forEach((w) => w.classList.add('on'))) }
 
 /* Chargeur : le « o » du logo-kit (loader.js, loader-draw.js), dessiné hors du fil principal quand le navigateur le
    permet. En fin de chargement, la tête rejoint la queue, l'anneau se complète et grandit en accélérant (60 % → 100 % du

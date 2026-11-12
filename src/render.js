@@ -5,45 +5,16 @@
  */
 import { readFileSync, existsSync } from 'node:fs'
 import { createHash } from 'node:crypto'
-import { site, ui, projects, research, studio, about, workIntro } from './content.js'
+import { site, ui, projects as allProjects, research, studio, about, workIntro } from './content.js'
 import sizes from './media-sizes.json' with { type: 'json' }
-import { IRIS_STOPS } from '../design/logo-kit/src/iris.js'
 import { logotypeSvg, resetLogotypes } from './logotype-svg.js'
+
+const projects = allProjects.filter((p) => !p.hidden)   // projets masqués : ni vignette ni fiche
 
 // version des fichiers du logo (media/ est gardé 7 jours en cache) : l'adresse change dès que le logo change, les
 // téléphones et navigateurs rechargent alors le nouveau logo tout de suite (gl.js reprend ce ?v= pour monogram-sdf.png)
 const MONO_V = createHash('sha256').update(['monogram-iris-dark.svg', 'monogram-iris-light.svg', 'monogram-sdf.png']
   .map((f) => readFileSync(new URL('../public/media/' + f, import.meta.url))).reduce((a, b) => Buffer.concat([a, b]))).digest('hex').slice(0, 10)
-
-// logotype en ligne (À propos) : le tracé se dessine, le blanc se remplit, puis ses bords se fondent dans une suite
-// répétée des couleurs irisées, comme le blanc de l'œil du monogramme noir (étapes successives, pas en même temps).
-const logoSrc = readFileSync(new URL('../public/media/logotype-white.svg', import.meta.url), 'utf8')
-const logoPaths = logoSrc.match(/<path [^>]*\/>/g).map((x) => x.replace(/ fill="#FFFFFF"/, '')).join('')
-const logoBox = logoSrc.match(/viewBox="([^"]+)"/)[1]
-// couleurs irisées : la roue du logo-kit (design/logo-kit/src/iris.js), répétée le long du mot
-const irisStops = IRIS_STOPS.map(([p, c]) => `<stop offset="${p}" stop-color="${c}"/>`).join('')
-const logoParts = logoSrc.match(/<path [^>]*\/>/g).map((x) => x.replace(/ fill="#FFFFFF"/, ''))
-// le logotype en deux moitiés : HOLO (H, o, l, o) et SENE (s, e, n, e)
-const wordPart = (paths) => `<svg class="studio__word" viewBox="${logoBox}" aria-hidden="true">
-  <defs>
-    <linearGradient id="iris-g" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="460" y2="230" spreadMethod="repeat">${irisStops}</linearGradient>
-    <linearGradient id="iris-l" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="460" y2="230" spreadMethod="repeat">${irisStops}</linearGradient>
-    <filter id="core" x="-5%" y="-5%" width="110%" height="110%"><feMorphology in="SourceGraphic" operator="erode" radius="6" result="e"/><feGaussianBlur in="e" stdDeviation="12" result="b"/><feComposite in="b" in2="SourceGraphic" operator="in"/></filter>
-  </defs>
-  <g class="w-edge" fill="url(#iris-g)">${paths}</g>
-  <g class="w-core" fill="currentColor" filter="url(#core)">${paths}</g>
-  <g class="w-white" fill="currentColor">${paths}</g>
-  <g class="w-line" fill="none" stroke="url(#iris-l)">${paths.replace(/<path /g, '<path pathLength="1" ')}</g>
-</svg>`
-const logotype = wordPart(logoPaths)
-// nom de l'accueil : « Johann Arata », même dessin que le logotype (Archivo 500, largeur 120 %, approche -0,04 em)
-const nameSrc = readFileSync(new URL('../public/media/name-white.svg', import.meta.url), 'utf8')
-const nameParts = nameSrc.match(/<path [^>]*\/>/g).map((x) => x.replace(/ fill="#FFFFFF"/, ''))
-// nom de l'accueil : aplat à l'encre du thème, sans contour ni lueur (il apparaît en fondu, voir .w-solid)
-const nameSvg = (paths, box, cls) => `<svg class="studio__word ${cls}" viewBox="${box}" aria-hidden="true"><g class="w-solid" fill="currentColor">${paths}</g></svg>`
-const nameWord = nameSvg(nameParts.join(''), nameSrc.match(/viewBox="([^"]+)"/)[1], 'studio__word--line')
-// sur mobile : « Arata » sous « Johann », centré (Johann : x 39 à 3803 ; Arata : x 4117 à 6958)
-const nameStacked = nameSvg(nameParts.slice(0, 6).join('') + `<g transform="translate(-3616.5 880)">${nameParts.slice(6).join('')}</g>`, '39 -724 3764 1616', 'studio__word--stack')
 
 export const esc = (s = '') => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c])
 
@@ -52,18 +23,10 @@ export function render(lang) {
   const cvReady = existsSync(new URL(`../public/${site.cv}`, import.meta.url))
   resetLogotypes()   // mêmes id de logotypes dans chaque langue (voir logotype-svg.js)
   const t = (v) => (v && typeof v === 'object' && 'fr' in v ? v[lang] : v)
-  const txt = (v, tag = 'p', cls = '') => {
-    if (!v) return ''
-    const todo = v.todo ? ' todo' : ''
-    return `<${tag} class="${(cls + todo).trim()}">${esc(t(v))}</${tag}>`
-  }
   const other = lang === 'fr' ? 'en/' : '../'
   const root = lang === 'fr' ? '' : '../'
   const m = (src) => `${root}media/${src}`
 
-  const n2 = (i) => String(i + 1).padStart(2, '0')
-
-  // un projet = une carte de la piste horizontale : l'image en trame de points, la lentille montre l'original
   // une carte de piste horizontale (projets, recherche) : l'image en trame de points, la lentille montre l'original
   const card = (c) => {
     const tag = c.href ? 'a' : 'div', href = c.href ? ` href="${c.href}"` : ''
@@ -210,7 +173,7 @@ export function render(lang) {
       <h2 class="disp" id="research-t" data-sw>${seq(t(ui.research))}</h2>
       <p class="lbl sec-head__sub" data-sw>${seq(t(research.intro))}</p>
     </header>
-    ${rail(research.items.map((r, i) => card({ id: `recherche-${r.slug || i + 1}`, href: r.href, image: t(r.image), pos: r.pos, text: r.label && t(r.label), badge: r.when && t(r.when), title: t(r.title), genre: t(r.kind), todo: r.todo })), lang === 'fr' ? 'Recherche, défilement horizontal' : 'Research, horizontal scroll')}
+    ${rail(research.items.filter((r) => !r.hidden).map((r, i) => card({ id: `recherche-${r.slug || i + 1}`, href: r.href, image: t(r.image), pos: r.pos, text: r.label && t(r.label), badge: r.when && t(r.when), title: t(r.title), genre: t(r.kind), todo: r.todo })), lang === 'fr' ? 'Recherche, défilement horizontal' : 'Research, horizontal scroll')}
   </section>
 
   <section class="about wrap" id="a-propos" aria-labelledby="about-t">

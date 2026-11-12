@@ -4,10 +4,8 @@
  * (les lettres se chevauchent, les ligatures ne doivent pas devenir des trous), remplie en currentColor.
  * Utilisé à la compilation par src/render.js.
  *
- *   logotypeSvg({ mot: 'holosene' | 'johann-arata', animation: 'apparition' | 'vague' | 'flottement' | 'trace',
- *                 className: '...', id: 'unique', decoratif: true, empile: true })
+ *   logotypeSvg({ mot: 'holosene' | 'johann-arata', className: '...', id: 'unique', decoratif: true, empile: true, balayage: true })
  *
- * - animation : classe du pack (src/logotype-animations.css) ; sans animation, rien ne bouge.
  * - decoratif : quand le texte est déjà lu ailleurs (titre caché pour lecteurs d'écran) → aria-hidden, sans <title>.
  * - empile    : JOHANN au-dessus de ARATA, centrés (accueil sur mobile).
  * - balayage  : apparition de gauche à droite où chaque endroit du mot passe, à son tour, de flou et transparent à net
@@ -21,7 +19,6 @@
 import { readFileSync } from 'node:fs'
 
 const MOTS = { 'holosene': 'HOLOSENE', 'johann-arata': 'JOHANN ARATA' }
-const ANIMS = ['apparition', 'vague', 'flottement', 'trace']
 const sources = {}
 const lire = (mot) => sources[mot] ??= readFileSync(new URL(`../public/logotypes/svg/${mot}.svg`, import.meta.url), 'utf8')
 
@@ -47,9 +44,8 @@ let compteur = 0
 // exactement les mêmes id. Le changement de langue sans rechargement (lang-swap.js) recopie l'attribut href des <use>
 // de l'autre page : avec des numéros différents, le nom pointait vers un dessin absent et disparaissait.
 export const resetLogotypes = () => { compteur = 0 }
-export function logotypeSvg({ mot = 'holosene', animation = '', className = '', id = '', decoratif = false, empile = false, balayage = false } = {}) {
+export function logotypeSvg({ mot = 'holosene', className = '', id = '', decoratif = false, empile = false, balayage = false } = {}) {
   if (!MOTS[mot]) throw new Error(`logotype inconnu : ${mot}`)
-  if (animation && !ANIMS.includes(animation)) throw new Error(`animation inconnue : ${animation}`)
   const src = lire(mot)
   let viewBox = src.match(/viewBox="([^"]+)"/)[1]
   let lettres = src.match(/<path [^>]*\/>/g)
@@ -62,7 +58,7 @@ export function logotypeSvg({ mot = 'holosene', animation = '', className = '', 
     viewBox = EMPILE.viewBox
   }
   const tid = `${id || `logotype-${mot}`}-titre-${++compteur}`   // id de <title> unique sur la page
-  const classes = ['logotype', `logotype-${mot}`, animation && `anim-${animation}`, className].filter(Boolean).join(' ')
+  const classes = ['logotype', `logotype-${mot}`, className].filter(Boolean).join(' ')
   const a11y = decoratif ? 'aria-hidden="true" focusable="false"' : `role="img" aria-labelledby="${tid}"`
   const titre = decoratif ? '' : `<title id="${tid}">${MOTS[mot]}</title>`
   const motG = (attrs = '') => `<g class="mot" fill="currentColor" fill-rule="evenodd"${attrs}>${lettres.join('')}</g>`

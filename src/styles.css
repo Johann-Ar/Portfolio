@@ -27,7 +27,7 @@ html { -webkit-tap-highlight-color: transparent; -webkit-text-size-adjust: 100%;
 html::-webkit-scrollbar { display: none; }
 html.lenis, html.lenis body { height: auto; } .lenis.lenis-smooth { scroll-behavior: auto !important; } .lenis.lenis-stopped { overflow: hidden; }
 @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
-body { background: var(--bg); color: var(--ink-86); font: 400 var(--fs-body)/var(--lh-body) var(--font-text); overflow-x: hidden; }
+body { visibility: visible; background: var(--bg); color: var(--ink-86); font: 400 var(--fs-body)/var(--lh-body) var(--font-text); overflow-x: hidden; }   /* visible : levée du masque posé dans <head> (vite.config.js, themeHead) */
 img { max-width: 100%; display: block; }
 /* logos et visuels : pas de glisser-déposer */
 img, svg, canvas { -webkit-user-drag: none; user-select: none; }
@@ -80,8 +80,13 @@ a { color: inherit; }
 /* mode clair : verre dépoli de la barre en flou progressif (5 couches empilées, flou doublé à chaque couche de 1 à 16 px, chacune
    visible sur une bande ; le flou croît vers le haut, sans palier) ; il descend sous les liens pour que le dégradé
    finisse en dessous d'eux ; voile léger dégradé par-dessus */
-.topbar__glass { display: none; position: absolute; left: 0; right: 0; top: 0; height: calc((100% + 48px) / 1.3); z-index: -1; pointer-events: none; background: linear-gradient(color-mix(in srgb, white 72%, transparent), color-mix(in srgb, white 34%, transparent) 55%, transparent); }   /* voile blanc : boutons et liens mieux contrastés */   /* voile blanc : boutons et liens mieux contrastés */
+.topbar__glass { display: none; position: absolute; left: 0; right: 0; top: 0; height: calc((100% + 48px) / 1.3); z-index: -1; pointer-events: none; background: linear-gradient(color-mix(in srgb, white 72%, transparent), color-mix(in srgb, white 34%, transparent) 55%, transparent); }   /* voile blanc (repli sans WebGL) : boutons et liens mieux contrastés */
 .topbar__glass i { position: absolute; inset: 0; }
+/* avec le fond WebGL : le voile blanc est remplacé par une copie du fond (backdrop.js), même profil d'opacité ; le contenu
+   s'efface sous les liens sans que les couleurs du fond blanchissent */
+.topbar__glass.glass--live { background: none; }
+.topbar__bg { position: absolute; inset: 0; width: 100%; height: 100%; display: block;
+  -webkit-mask: linear-gradient(rgb(0 0 0 / 0.720) 0%, rgb(0 0 0 / 0.700) 10%, rgb(0 0 0 / 0.645) 20%, rgb(0 0 0 / 0.564) 30%, rgb(0 0 0 / 0.467) 40%, rgb(0 0 0 / 0.360) 50%, rgb(0 0 0 / 0.253) 60%, rgb(0 0 0 / 0.156) 70%, rgb(0 0 0 / 0.075) 80%, rgb(0 0 0 / 0.020) 90%, rgb(0 0 0 / 0.000) 100%); mask: linear-gradient(rgb(0 0 0 / 0.720) 0%, rgb(0 0 0 / 0.700) 10%, rgb(0 0 0 / 0.645) 20%, rgb(0 0 0 / 0.564) 30%, rgb(0 0 0 / 0.467) 40%, rgb(0 0 0 / 0.360) 50%, rgb(0 0 0 / 0.253) 60%, rgb(0 0 0 / 0.156) 70%, rgb(0 0 0 / 0.075) 80%, rgb(0 0 0 / 0.020) 90%, rgb(0 0 0 / 0.000) 100%); }   /* courbe douce (smoothstep) : pente nulle en bas, aucune limite visible */
 /* flou de la barre : seulement quand le contenu passe dessous (après la scène de l'accueil) ; sur l'accueil et pendant
    le chargement, la barre n'a que ses liens. Sans fondu d'opacité : pendant un fondu, le navigateur coupe le flou des
    calques puis le rétablit d'un coup (à-coup visible) */
@@ -94,7 +99,7 @@ a { color: inherit; }
 @media (prefers-color-scheme: light) { :root:not([data-theme="dark"]) .topbar__glass { display: block; } }
 :root[data-theme="light"] .topbar__glass { display: block; }
 /* grand écran : le flou de la barre s'éteint sur une plus grande hauteur (aucune limite basse visible) */
-@media (min-width: 769px) { .topbar__glass { height: calc((100% + 60px) / 1.3); } }   /* PC : flou de la barre plus court */
+@media (min-width: 769px) { .topbar__glass { height: calc(100% + 56px); } }   /* PC : dégradé assez long pour que sa limite ne se voie pas */
 .brand__mark { height: 48px; width: auto; }   /* PC ; téléphone : 34 px (plus bas) */
 .theme-toggle { display: grid; place-items: center; width: 30px; height: 30px; padding: 0; border: 1px solid var(--ink); border-radius: 50%; background: none; color: inherit; cursor: pointer; transition: background var(--dur-fast), color var(--dur-fast); }
 .theme-toggle svg { width: 16px; height: 16px; }
@@ -138,10 +143,10 @@ a { color: inherit; }
 /* mode clair : un voile clair en fondu blanchit le contenu ; à la place, flou progressif (backdrop-filter masqué en dégradé,
    comme les barres des interfaces claires) et voile bien plus léger ; sur les côtés de la piste, flou seul (voir .work__pin) */
 :root { --edge-floor: 0.12; }
-@media (prefers-color-scheme: light) { :root:not([data-theme="dark"]) { --edge-floor: 1; } :root:not([data-theme="dark"]) .edge { opacity: 0.35; -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); } :root:not([data-theme="dark"]) .edge--top { -webkit-mask: linear-gradient(#000, transparent); mask: linear-gradient(#000, transparent); } :root:not([data-theme="dark"]) .edge--bottom { -webkit-mask: linear-gradient(0deg, #000, transparent); mask: linear-gradient(0deg, #000, transparent); } }
+@media (prefers-color-scheme: light) { :root:not([data-theme="dark"]) { --edge-floor: 1; } :root:not([data-theme="dark"]) .edge { opacity: 0.35; -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); } :root:not([data-theme="dark"]) .edge--top { -webkit-mask: linear-gradient(rgb(0 0 0 / 1.000) 0%, rgb(0 0 0 / 0.972) 10%, rgb(0 0 0 / 0.896) 20%, rgb(0 0 0 / 0.784) 30%, rgb(0 0 0 / 0.648) 40%, rgb(0 0 0 / 0.500) 50%, rgb(0 0 0 / 0.352) 60%, rgb(0 0 0 / 0.216) 70%, rgb(0 0 0 / 0.104) 80%, rgb(0 0 0 / 0.028) 90%, rgb(0 0 0 / 0.000) 100%); mask: linear-gradient(rgb(0 0 0 / 1.000) 0%, rgb(0 0 0 / 0.972) 10%, rgb(0 0 0 / 0.896) 20%, rgb(0 0 0 / 0.784) 30%, rgb(0 0 0 / 0.648) 40%, rgb(0 0 0 / 0.500) 50%, rgb(0 0 0 / 0.352) 60%, rgb(0 0 0 / 0.216) 70%, rgb(0 0 0 / 0.104) 80%, rgb(0 0 0 / 0.028) 90%, rgb(0 0 0 / 0.000) 100%); } :root:not([data-theme="dark"]) .edge--bottom { -webkit-mask: linear-gradient(0deg, #000, transparent); mask: linear-gradient(0deg, #000, transparent); } }
 :root[data-theme="light"] { --edge-floor: 1; }
 :root[data-theme="light"] .edge { opacity: 0.35; -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
-:root[data-theme="light"] .edge--top { -webkit-mask: linear-gradient(#000, transparent); mask: linear-gradient(#000, transparent); }
+:root[data-theme="light"] .edge--top { -webkit-mask: linear-gradient(rgb(0 0 0 / 1.000) 0%, rgb(0 0 0 / 0.972) 10%, rgb(0 0 0 / 0.896) 20%, rgb(0 0 0 / 0.784) 30%, rgb(0 0 0 / 0.648) 40%, rgb(0 0 0 / 0.500) 50%, rgb(0 0 0 / 0.352) 60%, rgb(0 0 0 / 0.216) 70%, rgb(0 0 0 / 0.104) 80%, rgb(0 0 0 / 0.028) 90%, rgb(0 0 0 / 0.000) 100%); mask: linear-gradient(rgb(0 0 0 / 1.000) 0%, rgb(0 0 0 / 0.972) 10%, rgb(0 0 0 / 0.896) 20%, rgb(0 0 0 / 0.784) 30%, rgb(0 0 0 / 0.648) 40%, rgb(0 0 0 / 0.500) 50%, rgb(0 0 0 / 0.352) 60%, rgb(0 0 0 / 0.216) 70%, rgb(0 0 0 / 0.104) 80%, rgb(0 0 0 / 0.028) 90%, rgb(0 0 0 / 0.000) 100%); }
 :root[data-theme="light"] .edge--bottom { -webkit-mask: linear-gradient(0deg, #000, transparent); mask: linear-gradient(0deg, #000, transparent); }
 .fiche-open body > .edge { display: none; }   /* les fiches ont leur propre fondu du haut */
 .work__pin { position: relative; }
@@ -242,7 +247,7 @@ main { position: relative; }   /* pas de contexte d'empilement : le mot de l'acc
 .hero__copy > .hero__line { align-self: start; }
 /* proportions de la maquette d'accueil : logo ≈ 13 % de la hauteur de l'écran, nom ≈ 84 % de la largeur, logo → nom
    ≈ 4,3 % de la hauteur, nom → présentation ≈ 2,8 % */
-.hero__slot { height: clamp(90px, 14.3svh, 165px); aspect-ratio: 470 / 576; flex: none; }   /* ordinateur : un peu plus grand (+10 %) ; mobile : plus bas */
+.hero__slot { height: min(clamp(90px, 14.3svh, 165px), 9vw); aspect-ratio: 470 / 576; flex: none; }   /* ordinateur : un peu plus grand (+10 %) ; mobile : plus bas ; 9vw : rétrécit avec la largeur, en proportion du nom (84vw) */
 .hero__mark { display: block; width: 100%; height: 100%; }
 .has-gl .hero__mark { visibility: hidden; }
 /* écran tactile, montée vers la barre (gl.js, mark-dom) : l'image du logo, dans la page, remplace le logo WebGL et défile
@@ -284,7 +289,7 @@ main { position: relative; }   /* pas de contexte d'empilement : le mot de l'acc
 /* mobile : « Arata » à la ligne sous « Johann » */
 @media (max-width: 760px) {
   .hero__copy { --hero-gap: clamp(14px, 3svh, 28px); }
-  .hero__slot { height: clamp(62px, 9.5svh, 96px); }   /* logo au-dessus du nom : un peu plus petit sur mobile */
+  .hero__slot { height: min(clamp(62px, 9.5svh, 96px), 20.5vw); }   /* en proportion du nom sur deux lignes (80vw) */   /* logo au-dessus du nom : un peu plus petit sur mobile */
   .hero__word .studio__word--line { display: none; }
   .hero__word .studio__word--stack { display: block; width: min(68vw, 340px); }
   .hero__line { max-width: 30ch; }
@@ -299,12 +304,6 @@ main { position: relative; }   /* pas de contexte d'empilement : le mot de l'acc
 .about p { max-width: 60ch; font-size: var(--fs-text); line-height: 1.3; }
 .about strong { color: var(--ink); font-weight: 700; }
 .studio__word { width: 100%; height: auto; overflow: visible; color: var(--ink); }
-.hero .studio__word { filter: blur(calc((1 - var(--fill, 1)) * 5px)); }   /* le nom se défloute en se remplissant */
-/* --fill de 0 à 1 : d'abord le blanc plein (w-white), puis il s'efface sur le blanc aux bords irisés (w-edge + w-core) */
-.studio__word .w-white { opacity: calc(min(var(--fill, 1) * 2, 1) - max(var(--fill, 1) * 2 - 1, 0)); }
-.studio__word .w-edge, .studio__word .w-core { opacity: clamp(0, (var(--fill, 1) - 0.5) * 100, 1); }
-.studio__word .w-solid { opacity: calc(1 - var(--draw, 0)); }   /* nom de l'accueil : simple fondu, sans contour */
-.studio__word .w-line path { stroke-width: 6; stroke-dasharray: 1; stroke-dashoffset: var(--draw, 0); opacity: calc(1 - var(--fill, 1)); }
 
 /* 3. projets : index en grand texte, puis une piste horizontale (épinglée au défilement sur grand écran) */
 .work { padding-top: var(--sp-7); }
@@ -332,10 +331,10 @@ main { position: relative; }   /* pas de contexte d'empilement : le mot de l'acc
 .work__track.is-drag { cursor: grabbing; user-select: none; }
 .work__track:focus-visible { outline: none; }
 .work__track::-webkit-scrollbar { display: none; }
-.card { flex: 0 0 auto; width: min(84vw, 40vw + 40px, 72svh); scroll-snap-align: start; display: grid; gap: 22px; align-content: start; }
+.card { flex: 0 0 auto; width: calc(min(84vw, 40vw + 40px, 72svh) / 1.3); scroll-snap-align: start; display: grid; gap: 22px; align-content: start; }
 /* PC : au repos, l'espace entre les deux premières vignettes est exactement au centre de l'écran (sous le logo de la
    barre) : largeur = moitié de la piste − marge gauche − moitié de l'écart (--track-w : largeur de la piste, main.js) */
-@media (min-width: 761px) { .card { width: calc(var(--track-w, 100vw) / 2 - var(--edge-l) - var(--rail-gap) / 2); } }
+@media (min-width: 761px) { .card { width: calc((var(--track-w, 100vw) / 2 - var(--edge-l) - var(--rail-gap) / 2) / 1.3); } }   /* vignettes réduites de 1,3 */
 .card { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }   /* appui long : ni menu, ni sélection (la vignette passe en couleur) */
 .card__media { aspect-ratio: 16 / 10; border-radius: 26px; background: var(--card-bg); }
 .card__media > img, .card__media > picture > img { border-radius: 26px; }
@@ -349,7 +348,7 @@ main { position: relative; }   /* pas de contexte d'empilement : le mot de l'acc
 .work__nav svg { display: block; transition: transform var(--dur-base) var(--ease-flow); }
 .work__nav[data-dir="1"]:hover svg { transform: translateX(2px); }
 .work__nav[data-dir="-1"]:hover svg { transform: translateX(-2px); }
-/* mobile : vignettes carrées (68 % de l'écran), exactement centrées, voisines visibles de chaque côté (≈ 48 px) ;
+/* mobile : vignettes carrées (68 % de l’écran), exactement centrées, voisines visibles de chaque côté (≈ 48 px) ;
    piste finie (pas de copies, pas de boucle) ; titre centré, sous-titre plus petit et plus gris */
 @media (max-width: 760px) {
   .card { width: 68vw; gap: 14px; }
@@ -446,6 +445,8 @@ main { position: relative; }   /* pas de contexte d'empilement : le mot de l'acc
 .brand-on .fiche-brand { transition: opacity 0s linear 0.75s, visibility 0s linear 0.75s; }
 .brand-on.fiche-open .fiche-brand { transition: none; }
 .fiche-brand img { display: block; width: 100%; height: 100%; }
+/* retour à l'accueil par ce logo : il s'efface en fondu, quel que soit l'état de la barre */
+html.brand-fade .fiche-brand { transition: opacity 0.4s var(--ease-flow), visibility 0s linear 0.4s; }
 @media (prefers-reduced-motion: reduce) { .fiche-brand, .fiche-open .fiche-brand, .brand-on .fiche-brand { transition: none; } }
 .fiche-veil.is-on { display: block; animation: veil-out 0.75s cubic-bezier(0.65, 0, 0.35, 1) forwards; }
 @keyframes fiche-out { to { transform: translate3d(118vw, 0, 0); } }
@@ -525,8 +526,6 @@ main { position: relative; }   /* pas de contexte d'empilement : le mot de l'acc
 .legal h1 { font-size: var(--fs-h1); margin-bottom: 8px; }
 .legal h2 { margin-top: var(--sp-4); }
 /* informations à fournir (temporaires) : orange lisible (contraste AA) sur fond clair, orange clair sur fond sombre */
-.legal .note, .legal .missing { color: #9a4f00; }
-:root[data-theme="dark"] .legal .note, :root[data-theme="dark"] .legal .missing { color: #ffb36b; }
 .legal .btn { margin-right: 8px; margin-top: var(--sp-4); }
 .notfound { min-height: 100svh; display: grid; place-content: center; justify-items: start; gap: 16px; padding-block: 80px; }
 .notfound h1 { font-size: var(--fs-h1); }
@@ -534,11 +533,6 @@ main { position: relative; }   /* pas de contexte d'empilement : le mot de l'acc
 
 @media (max-width: 860px) {
   .contact { padding-block: var(--sp-6) var(--sp-5); }
-  /* mobile : GitHub / CV juste sous l'adresse ; le message « Adresse copiée » s'affiche dans l'espace libre entre
-     « Contact » et l'adresse (hors du flux : il ne pousse ni ne cache rien) */
-  .contact { position: relative; }
-  .contact .mail { margin-top: 34px; }   /* place du message, au-dessus de l'adresse */
-  .about .copy-toast { position: absolute; grid-row: 2; justify-self: center; align-self: start; top: 0; margin: 0; }   /* mobile : Contact suit le texte de près (48 + 16 px au lieu de 144) */
 }
 
 /* textes secondaires discrets : police extra-condensée (voir --font-cond en tête de fichier) */
@@ -703,7 +697,7 @@ main { position: relative; }   /* pas de contexte d'empilement : le mot de l'acc
    à l'encre du thème ; apparaît en fondu, du flou au net, piloté par la scène de l'accueil (--draw, main.js), entièrement
    net avant que la présentation commence. Sur une ligne (ordinateur) ou JOHANN au-dessus de ARATA (mobile). */
 .hero__name { color: var(--ink); }
-.hero .studio__word.hero__name { height: auto; filter: none; }
+.hero .studio__word.hero__name { height: auto; }
 /* apparition (main.js, sweep) : de gauche à droite, chaque endroit du nom passe à son tour de flou et transparent à net
    et plein, comme les mots des textes mais en continu ; le nom ne bouge pas. Entièrement net exactement à la fin de
    sa phase (avant la présentation). Le dessin a une marge (--m, part de sa largeur) pour le halo du flou : la largeur
