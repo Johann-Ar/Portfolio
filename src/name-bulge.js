@@ -4,9 +4,10 @@
  * on n'y règle que la région du filtre et la place de la bosse (autour de la balle), et son ampleur (k3).
  * - survol : la balle suit le curseur avec un léger retard ; elle ne naît que si le curseur lui-même touche une lettre
  *   (pas seulement s'il passe près : sinon elle déformait des lettres qu'on ne touchait pas). Seulement à la souris.
- * - battement (nom de l'accueil) : juste après celui du S (gl.js, setNameHeart), deux boules partent de l'espace entre
- *   JOHANN et ARATA et suivent le chemin principal du tracé (name-trace-data.js) jusqu'aux deux bouts du nom.
- * Nom de l'accueil une fois entier (.bal-net), et pied de page ; hors animations réduites.
+ * - battement (noms tracés : accueil, pied de page) : à la suite de chaque boule du S (gl.js, setNameHeart), une vague :
+ *   deux boules partent de l'espace entre JOHANN et ARATA et suivent le chemin principal du tracé (name-trace-data.js)
+ *   jusqu'aux deux bouts du nom. Deux vagues, comme les deux boules du S (couches 0-1 et 2-3).
+ * Noms tracés (accueil, pied de page) une fois entiers (.bal-net) ; hors animations réduites.
  */
 import { NAME_TRACE } from './name-trace-data.js'
 
@@ -15,19 +16,33 @@ const R_MIN_PX = 13   // petit nom (pied de page) : la bosse garde au moins ce r
 const AMP = 0.55      // ampleur au plus fort (ajoutée à l’alpha adouci, dont le seuil est à 0,62 : environ +40 % d’épaisseur sous la balle)
 const R_PAD = 30        // marge de la région du filtre autour de la bosse (≥ 3 × le flou)
 
-let heartK = -1, kickAll = null
-/** Battement du nom : avancée de 0 à 1 des deux boules, ou −1 (aucune). Appelé à chaque image par gl.js. */
-export function setNameHeart(k) { if (k !== heartK) { heartK = k; kickAll?.() } }
+const heartT = [-1, -1]
+let kickAll = null, lastSet = -1e9, speed = 0.4, heartDur = 0
+// rythme du battement (gl.js, setNameRhythm) : départ des deux vagues dans le cycle, durée minimale d'une vague, repos,
+// délai avant le premier
+let rhythm = { n1: 540, n2: 1360, name: 1000, pause: 1400, delay: 3500 }
+export function setNameRhythm(r) { rhythm = r }
+/** Battement du nom : temps (ms) depuis le départ de chaque vague, ou −1 (aucune), et vitesse moyenne de la boule du S à
+ *  l'écran (px/ms), que suivent les boules du nom. Appelé à chaque image par gl.js tant que le S bat ; sinon (S rangé
+ *  dans la barre, pied de page) le nom bat seul, au même rythme et à la dernière vitesse connue. */
+export function setNameHeart(t1, t2, v) {
+  lastSet = performance.now(); if (v > 0) speed = v
+  if (t1 !== heartT[0] || t2 !== heartT[1]) { heartT[0] = t1; heartT[1] = t2; kickAll?.() }
+}
+/** Durée (ms) de la plus longue course des boules du nom affiché (pour la longueur du cycle, gl.js). */
+export const nameHeartDur = () => heartDur
+/** Réveille l'animation (nom devenu entier : son battement peut commencer). */
+export const wakeNameBulge = () => kickAll?.()
 
 // chemin (points) → position à la fraction f de sa longueur
 const along = (pts) => {
   const L = [0]; for (let i = 1; i < pts.length; i++) L.push(L[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]))
-  return (f) => {
+  return Object.assign((f) => {
     const d = Math.min(1, Math.max(0, f)) * L[L.length - 1]; let i = 1
     while (i < L.length - 1 && L[i] < d) i++
     const k = (d - L[i - 1]) / (L[i] - L[i - 1] || 1), a = pts[i - 1], b = pts[i]
     return [a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k]
-  }
+  }, { len: L[L.length - 1] })
 }
 const ss = (x) => { x = Math.min(1, Math.max(0, x)); return x * x * (3 - 2 * x) }
 
@@ -39,9 +54,9 @@ export function initNameBulge(svgs) {
       const f = el.getElementById(layer.getAttribute('filter').slice(5, -1))
       return { layer, f, img: f?.querySelector('.bal-ri'), k: f?.querySelector('.bal-rk'), x: 0, y: 0, a: 0, shown: false }
     }).filter((b) => b.f && b.img && b.k)
-    // battement : seulement le nom de l'accueil ; nom empilé (mobile) : ARATA est décalé sous JOHANN
+    // battement : noms tracés (accueil, pied de page) ; nom empilé (mobile) : ARATA est décalé sous JOHANN
     const st = el.dataset.empile?.split(' ').map(Number)
-    const heart = el.classList.contains('logotype--balayage') && balls.length > 1
+    const heart = el.classList.contains('logotype--balayage') && balls.length > 3
       ? [along(NAME_TRACE.paths.johann), along(NAME_TRACE.paths.arata.map(([x, y], i) => st && i > 0 ? [x + st[0], y + st[1]] : [x, y]))]
       : null
     return {
@@ -86,17 +101,35 @@ export function initNameBulge(svgs) {
     for (const it of items) {
       const r = it.el.getBoundingClientRect()
       const on = r.width > 0 && r.bottom > 0 && r.top < innerHeight && (!it.el.classList.contains('logotype--balayage') || it.el.classList.contains('bal-net'))
-      const [b0, b1] = it.balls
+      const [b0] = it.balls
       let tx = b0.x, ty = b0.y, near = false
       if (on && px > r.left - 40 && px < r.right + 40 && py > r.top - 40 && py < r.bottom + 40) {
         const p = new DOMPoint(px, py).matrixTransform(it.el.getScreenCTM().inverse())
         if (onInk(it, p.x, p.y)) { tx = p.x; ty = p.y; near = true }
       }
-      if (!near && on && it.heart && heartK >= 0) {
-        // battement : deux boules, du centre vers les deux bouts (départ et arrivée ralentis, comme celles du S) ; leur
-        // ampleur monte au départ et retombe avant l'arrivée
-        const f = 0.5 - 0.5 * Math.cos(Math.PI * heartK), amp = ss(heartK / 0.12) * (1 - ss((heartK - 0.8) / 0.18))
-        it.balls.forEach((b, i) => { [b.x, b.y] = it.heart[i](f); b.a = amp; place(it, b) })
+      // battement : durée de la course de chaque boule (son chemin à l'écran à la vitesse de la boule du S) ; temps des
+      // vagues : celui de gl.js (à la suite du S) ou, s'il ne bat plus, l'horloge propre du nom
+      let ht = heartT, dur = null
+      if (on && it.heart) {
+        const a = it.el.getScreenCTM()?.a || 1
+        dur = it.heart.map((h) => h.len * a / speed); heartDur = Math.max(...dur)
+        if (now - lastSet > 300) {
+          it.t0 ||= now + rhythm.delay
+          const m = (now - it.t0) % (rhythm.n2 + Math.max(rhythm.name, heartDur) + rhythm.pause)
+          ht = now < it.t0 ? [-1, -1] : [rhythm.n1, rhythm.n2].map((n) => m >= n ? m - n : -1)
+          busy = true
+        } else it.t0 = 0
+      } else it.t0 = 0
+      if (!near && dur && ht.some((t, w) => t >= 0 && t < Math.max(...dur))) {
+        // battement : chaque vague, deux boules du centre vers les deux bouts (départ et arrivée ralentis, comme celles
+        // du S) ; leur ampleur monte au départ et retombe avant l'arrivée ; vague finie : ses boules s'éteignent
+        ht.forEach((t, w) => {
+          for (let i = 0; i < 2; i++) {
+            const b = it.balls[2 * w + i], k = t < 0 ? -1 : t / dur[i]
+            const f = 0.5 - 0.5 * Math.cos(Math.PI * Math.min(1, Math.max(0, k))), amp = k < 0 || k >= 1 ? 0 : ss(k / 0.12) * (1 - ss((k - 0.8) / 0.18))
+            ;[b.x, b.y] = it.heart[i](f); b.a = amp; place(it, b)
+          }
+        })
         busy = true
         continue
       }
@@ -105,8 +138,8 @@ export function initNameBulge(svgs) {
       b0.a = follow(b0.a, near ? 1 : 0, near ? 0.18 : 0.35, dt)
       if (!near && b0.a < 0.003) b0.a = 0
       place(it, b0)
-      // l'autre boule (battement) s'éteint vite si le survol l'interrompt
-      if (b1) { b1.a = b1.a < 0.003 ? 0 : follow(b1.a, 0, 0.08, dt); place(it, b1); if (b1.a > 0) busy = true }
+      // les autres boules (battement) s'éteignent vite si le survol l'interrompt
+      for (const b of it.balls.slice(1)) { b.a = b.a < 0.003 ? 0 : follow(b.a, 0, 0.08, dt); place(it, b); if (b.a > 0) busy = true }
       // en mouvement (balle ou ampleur) : image suivante ; à l'arrêt sous un curseur immobile, rien à recalculer
       if ((near ? 1 - b0.a > 0.002 : b0.a > 0) || Math.hypot(tx - b0.x, ty - b0.y) > 0.5) busy = true
     }

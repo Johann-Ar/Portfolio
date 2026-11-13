@@ -701,13 +701,14 @@ html.brand-fade .fiche-brand { transition: opacity 0.4s var(--ease-flow), visibi
 .tr-on > .bal-net-use, .logotype--balayage:not(.bal-net) .bal-r { visibility: hidden; }   /* tracé en cours : le canvas à la place du nom */
 .hero__word .hero__name.studio__word--line { --w: min(84vw, 1560px); }
 @media (max-width: 760px) { .hero__word .hero__name.studio__word--stack { --w: min(80vw, 420px); } }
-/* pied de page : « © … » en bas à gauche, JOHANN ARATA (logotype vectorisé du pack) au centre, sans animation ni effet
-   au survol ou au clic, les mentions légales à droite. Sur mobile : l'un sous l'autre, centrés */
+/* pied de page : « © … » en bas à gauche, JOHANN ARATA (logotype vectorisé du pack) au centre, tracé comme celui de
+   l'accueil quand il arrive à l'écran (main.js), les mentions légales à droite. Sur mobile : l'un sous l'autre, centrés.
+   La marge du dessin (--mh, part de sa hauteur) est compensée : le mot garde sa hauteur --h et sa place */
 .foot { display: grid; grid-template-columns: 1fr auto 1fr; align-items: baseline; }   /* le bas du dessin de JOHANN ARATA sur la ligne de base des textes */
-.foot .foot__logo { grid-column: 2; width: auto; height: 26px; color: var(--ink); pointer-events: none; }
+.foot .foot__logo { --h: 26px; grid-column: 2; width: auto; height: calc(var(--h) * (1 + 2 * var(--mh, 0))); margin: calc(var(--h) * -1 * var(--mh, 0)); color: var(--ink); pointer-events: none; }
 .foot > p.lbl { grid-column: 1; grid-row: 1; justify-self: start; margin: 0; }
 .foot > a.lbl { grid-column: 3; justify-self: end; }
-@media (max-width: 760px) { .foot { grid-template-columns: 1fr; justify-items: center; } .foot .foot__logo, .foot > a.lbl, .foot > p.lbl { grid-column: 1; grid-row: auto; justify-self: center; } .foot > p.lbl { order: 3; } .foot .foot__logo { order: 1; } .foot > a.lbl { order: 2; } .foot .foot__logo { height: 22px; margin-bottom: 4px; } }
+@media (max-width: 760px) { .foot { grid-template-columns: 1fr; justify-items: center; } .foot .foot__logo, .foot > a.lbl, .foot > p.lbl { grid-column: 1; grid-row: auto; justify-self: center; } .foot > p.lbl { order: 3; } .foot .foot__logo { order: 1; } .foot > a.lbl { order: 2; } .foot .foot__logo { --h: 22px; margin-bottom: calc(4px - var(--h) * var(--mh, 0)); } }
 /* touche G maintenue (main.js) : le voile et le fondu de la barre du haut, découpés en languettes accrochées au haut de
    l'écran derrière chaque élément (masque calculé par main.js) ; même dégradé, même flou que la bande entière.
    En sombre, le fondu du haut (.edge--top) prend la même découpe. */

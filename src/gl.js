@@ -14,7 +14,7 @@ import { FLOW } from './flow.js'
 import { HERO } from './hero-progress.js'
 import { LOGO_TUNE } from './logo-tune.js'
 import { S_AXIS } from './monogram-path.js'
-import { setNameHeart } from './name-bulge.js'
+import { setNameHeart, setNameRhythm, nameHeartDur } from './name-bulge.js'
 
 // roue du logo-kit (source de vérité) : irisColor(p), irisRing(p, Ro) ; irisAt(t) pour une position t sur le cercle
 // (0 = en haut, sens horaire, y vers le bas). fwidth vient de OES_standard_derivatives (repli : 1 px).
@@ -34,7 +34,7 @@ const MONO_O = [(KIT.ring.center[0] - MONO_VB[0]) * MONO_U, (KIT.ring.center[1] 
 const O_OFF = [(MONO_O[0] - MONO_W / 2) / 1000, (MONO_O[1] - 500) / 1000], O_R = KIT.ring.outerRadius * MONO_U / 1000
 const BIG_MAX = 420   // px : plafond du gros logo sur les grands écrans
 const bigOf = (w, h) => Math.min(BIG_MAX, h * (w < 760 ? 0.34 : 0.46), w * (w < 760 ? 0.38 : 0.6) * 1000 / 816)   // taille du logo au début de l'accueil (mobile : plus petit)
-const handoffR = (w, h) => Math.min(44, bigOf(w, h) * O_R * (w < 760 ? 0.75 : 0.62))   // rayon du « o » au relais avec le chargeur (px ; mobile : chargeur un peu plus grand)
+const handoffR = (w, h) => Math.min(53, bigOf(w, h) * O_R * (w < 760 ? 0.9 : 0.75))   // rayon du « o » au relais avec le chargeur (px ; mobile : chargeur un peu plus grand)
 /** Rayon du « o » au relais avec le chargeur (px CSS) : connu avant même de créer le contexte WebGL. */
 export const loaderRadius = () => handoffR(innerWidth, innerHeight)
 
@@ -632,10 +632,13 @@ export function createGL(canvas, { reduced }) {
   // boule automatique : la boule du survol, menée le long de l'axe du S (monogram-path.js) de son extrémité du haut à
   // celle du bas ; une deuxième boule part dès que la première est arrivée (elle s'efface vite en bas), puis une pause, en boucle. Le curseur reprend
   // la main dès qu'il approche du S. Rythme d'un cœur au repos (70 bpm : « boum » à 0, « boum » à 0,35 du cycle, repos
-  // jusqu'au suivant), ralenti 2,7 fois pour que chaque passage reste lisible. À la suite (même léger chevauchement que
-  // entre les deux boules du S), le battement passe dans le nom : deux boules du centre vers ses deux bouts (name, durée ;
-  // name-bulge.js), puis le repos. Cycle de 4,34 s. Durées en ms
-  const TRACE = { pass: 900, gap: -80, name: 1300, pause: 1400, delay: 3500 }
+  // jusqu'au suivant), ralenti 2,7 fois pour que chaque passage reste lisible. Chaque boule du S se prolonge dans le nom
+  // (accueil et pied de page) : une vague part quand elle a fait nameAt de sa course, deux boules du centre vers les deux
+  // bouts du nom, à la même vitesse à l'écran que celle du S (name-bulge.js) ; deux vagues, comme les deux boules du S,
+  // puis le repos (name : durée minimale d'une vague dans le cycle). Durées en ms
+  const TRACE = { pass: 900, gap: -80, nameAt: 0.6, name: 1000, pause: 1400, delay: 3500 }
+  { const n1 = TRACE.nameAt * TRACE.pass, n2 = TRACE.pass + TRACE.gap + n1
+    setNameRhythm({ n1, n2, name: TRACE.name, pause: TRACE.pause, delay: 1200 }) }   // le nom seul (S rangé) : même rythme
   const AXL = [0]; for (let i = 1; i < S_AXIS.length; i++) AXL.push(AXL[i - 1] + Math.hypot(S_AXIS[i][0] - S_AXIS[i - 1][0], S_AXIS[i][1] - S_AXIS[i - 1][1]))
   const axisAt = (u) => {   // point de l'axe à la fraction u de sa longueur
     const L = Math.min(1, Math.max(0, u)) * AXL[AXL.length - 1]; let i = 1
@@ -1004,9 +1007,11 @@ export function createGL(canvas, { reduced }) {
           if (!reduced && xf[4] >= 1 && v.maskW) {
             traceT0 ??= now + TRACE.delay
             if (hov) traceT0 = Math.max(traceT0, now + TRACE.delay)   // survol : le cycle attend que le curseur parte
-            const tc = now - traceT0, cyc = 2 * TRACE.pass + 2 * TRACE.gap + TRACE.name + TRACE.pause, m = tc < 0 ? -1 : tc % cyc
-            // deuxième boule : elle part un peu avant l'arrivée de la première (gap < 0), qui s'efface vite en bas
-            const s2 = TRACE.pass + TRACE.gap, pass = m < 0 ? 0 : m >= s2 && m < s2 + TRACE.pass ? 2 : m < TRACE.pass ? 1 : 0
+            // deuxième boule : elle part un peu avant l'arrivée de la première (gap < 0), qui s'efface vite en bas ; vagues
+            // du nom : n1 et n2, pendant la course de chaque boule du S
+            const s2 = TRACE.pass + TRACE.gap, n1 = TRACE.nameAt * TRACE.pass, n2 = s2 + n1
+            const tc = now - traceT0, cyc = n2 + Math.max(TRACE.name, nameHeartDur()) + TRACE.pause, m = tc < 0 ? -1 : tc % cyc
+            const pass = m < 0 ? 0 : m >= s2 && m < s2 + TRACE.pass ? 2 : m < TRACE.pass ? 1 : 0
             const k = pass === 2 ? (m - s2) / TRACE.pass : pass === 1 ? m / TRACE.pass : -1
             if (!hov && k >= 0) {
               const [ax, ay] = axisAt(0.5 - 0.5 * Math.cos(Math.PI * k))
@@ -1015,14 +1020,15 @@ export function createGL(canvas, { reduced }) {
               tx = ax; ty = ay; auto = k < 0.82; ending = !auto
             }
             tracePass = hov ? 0 : pass
-            // battement du nom, à la suite de la deuxième boule du S
-            const n0 = 2 * TRACE.pass + 2 * TRACE.gap
-            setNameHeart(!scrollBall && m >= n0 && m < n0 + TRACE.name ? (m - n0) / TRACE.name : -1)
+            // battement du nom (accueil et pied de page) : ses deux vagues, chacune à la suite d'une boule du S
+            // (temps depuis le départ de chaque vague, et vitesse moyenne de la boule du S, px/ms)
+            const wave = (n0) => !scrollBall && m >= n0 ? m - n0 : -1
+            setNameHeart(wave(n1), wave(n2), AXL[AXL.length - 1] * xf[2] / 1000 / TRACE.pass)
             if (scrollBall) {
               traceT0 = Math.max(traceT0, now + TRACE.delay); tracePass = 0
               ;[tx, ty] = axisAt(sq); auto = true; ending = false
             }
-          } else setNameHeart(-1)
+          } else setNameHeart(-1, -1)
           const near = hov || auto
           // début du défilement : une boule déjà là (survol, battement) s'éteint d'abord sur place, sans glisser vers sa
           // nouvelle place ; la boule du défilement naît ensuite là où elle doit être dans le S

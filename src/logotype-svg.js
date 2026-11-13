@@ -12,7 +12,8 @@
  * - balayage  : apparition tracée au défilement (name-trace.js, comme le S du logo) : le SVG garde le mot net (copie
  *               #bal-l-…, montrée quand le tracé est fini) ; pendant le tracé, un canvas posé dessus le dessine. Une
  *               marge (--m) autour du dessin laisse la place aux boules ; le CSS la compense par des marges négatives :
- *               le mot reste exactement à sa place. Nom empilé : data-empile donne le décalage d'ARATA.
+ *               le mot reste exactement à sa place (--mh : la même marge, part de la hauteur). Nom empilé : data-empile
+ *               donne le décalage d'ARATA.
  * Taille : par le CSS (largeur), la hauteur suit le dessin ; couleur : propriété CSS color.
  */
 import { readFileSync } from 'node:fs'
@@ -42,14 +43,16 @@ const BOSSE = 'data:image/svg+xml,' + encodeURIComponent(`<svg xmlns="http://www
 // renflement : filtre (région, image et ampleur réglées par name-bulge.js) et copie filtrée du mot (#bal-l-u), posée sur
 // le mot. Seuil raide : alpha × 60 − 36,7, bords nets même dans les creux où l'alpha adouci varie peu ; contour à 0,62 :
 // sans bosse, la copie reste dans les lettres et ne bouche pas les creux étroits
-// deux couches (n = 0, 1) : la balle du survol (couche 0), ou les deux boules du battement (une de chaque côté du nom)
-const renfDefs = (u) => [0, 1].map((n) => `<filter id="bal-rf${n || ''}-${u}" class="bal-rf" filterUnits="userSpaceOnUse" primitiveUnits="userSpaceOnUse" x="0" y="0" width="1" height="1" color-interpolation-filters="sRGB">`
+// quatre couches (n = 0 à 3) : la balle du survol (couche 0), ou les boules du battement : deux vagues (une par boule du
+// S), chacune deux boules (une de chaque côté du nom)
+const COUCHES = [0, 1, 2, 3]
+const renfDefs = (u) => COUCHES.map((n) => `<filter id="bal-rf${n || ''}-${u}" class="bal-rf" filterUnits="userSpaceOnUse" primitiveUnits="userSpaceOnUse" x="0" y="0" width="1" height="1" color-interpolation-filters="sRGB">`
   + `<feGaussianBlur in="SourceAlpha" stdDeviation="${RENF.flou}" result="b"/>`
   + `<feImage class="bal-ri" href="${BOSSE}" x="0" y="0" width="1" height="1" preserveAspectRatio="none" result="i"/>`
   + `<feComposite class="bal-rk" in="b" in2="i" operator="arithmetic" k1="0" k2="1" k3="0" k4="0" result="s"/>`
   + `<feComponentTransfer in="s" result="t"><feFuncA type="linear" slope="60" intercept="-36.7"/></feComponentTransfer>`
   + `<feFlood flood-color="currentColor"/><feComposite in2="t" operator="in"/></filter>`).join('')
-const renfCouche = (u) => [0, 1].map((n) => `<g class="bal-r" filter="url(#bal-rf${n || ''}-${u})" style="display:none"><use href="#bal-l-${u}"/></g>`).join('')
+const renfCouche = (u) => COUCHES.map((n) => `<g class="bal-r" filter="url(#bal-rf${n || ''}-${u})" style="display:none"><use href="#bal-l-${u}"/></g>`).join('')
 
 let compteur = 0
 // numérotation des id internes : remise à zéro au début de chaque page (render.js), pour que les pages FR et EN aient
@@ -81,6 +84,6 @@ export function logotypeSvg({ mot = 'holosene', className = '', id = '', decorat
   const [x, y, w, h] = viewBox.split(/\s+/).map(Number), M = MARGE
   const empileAttr = empile ? ` data-empile="${EMPILE.dx} ${EMPILE.dy} ${(344 + EMPILE.dy) / 2}"` : ''
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${x - M} ${y - M} ${w + 2 * M} ${h + 2 * M}" class="${classes} logotype--balayage"${id ? ` id="${id}"` : ''} ${a11y}`
-    + `${empileAttr} style="--m:${(M / w).toFixed(5)}">`
+    + `${empileAttr} style="--m:${(M / w).toFixed(5)};--mh:${(M / h).toFixed(5)}">`
     + `${titre}<defs><g id="bal-l-${u}">${motG()}</g>${renflement ? renfDefs(u) : ''}</defs><use class="bal-net-use" href="#bal-l-${u}"/>${renflement ? renfCouche(u) : ''}</svg>`
 }

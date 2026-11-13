@@ -196,7 +196,7 @@ export function render(lang) {
 
 <footer class="foot wrap">
   <p class="lbl">© ${new Date().getFullYear()} Portfolio · Johann Arata</p>
-  ${logotypeSvg({ mot: 'johann-arata', className: 'foot__logo', renflement: true })}
+  ${logotypeSvg({ mot: 'johann-arata', className: 'foot__logo', balayage: true })}
   <a class="lbl" href="${root}mentions-legales.html">${esc(t(ui.legal))}</a>
 </footer>
 

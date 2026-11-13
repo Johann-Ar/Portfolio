@@ -12,7 +12,7 @@ import { swapLanguage } from './lang-swap.js'
 import { HERO, updateHero } from './hero-progress.js'
 import { createLoader } from './loader.js'
 import { initBooks } from './book.js'
-import { initNameBulge } from './name-bulge.js'
+import { initNameBulge, wakeNameBulge } from './name-bulge.js'
 import { initHighlights } from './hl.js'
 
 const root = document.documentElement
@@ -523,7 +523,30 @@ const wordsSvg = [...document.querySelectorAll('.hero .studio__word')]
 // tracé ; avant et après, le SVG (rien, ou le nom entier). Sans WebGL (ou carte pas encore prête) : simple fondu du SVG
 const nameMap = (() => { const s = document.querySelector('.brand__mark')?.src; if (!s) return ''; const u = new URL('name-along.png', s); u.search = new URL(s).search; return u.href })()
 const sweeps = wordsSvg.filter((w) => w.classList.contains('logotype--balayage')).map((el) => ({ el, last: -1, tr: reduced || !nameMap ? null : nameTrace(el, nameMap) }))
-initNameBulge([...sweeps.map((sw) => sw.el), ...document.querySelectorAll('.logotype--renfle')])   // renflement du nom au survol (name-bulge.js)
+initNameBulge([...sweeps.map((sw) => sw.el), ...document.querySelectorAll('.foot__logo.logotype--balayage, .logotype--renfle')])   // renflement du nom au survol (name-bulge.js)
+// pied de page : le même tracé, joué dans le temps quand le nom arrive entier à l'écran ; effacé quand on remonte (le
+// nom repasse sous le bas de l'écran), rejoué au retour
+{ const el = document.querySelector('.foot__logo.logotype--balayage')
+  if (el) {
+    const tr = reduced || !nameMap ? null : nameTrace(el, nameMap), DUR = 2200
+    let a = -1, raf = 0, t0 = 0
+    const set = (v) => {
+      a = v
+      const ready = !!tr?.ready
+      if (ready) { tr.draw(v); tr.show(v > 0 && v < 1) } else tr?.draw(v)
+      el.style.opacity = ready ? (v > 0 ? '' : '0') : String(v)
+      if (el.classList.toggle('bal-net', v >= 1)) wakeNameBulge()   // nom entier : son battement peut commencer
+    }
+    const run = (now) => { set(Math.min(1, (now - t0) / DUR)); raf = a < 1 ? requestAnimationFrame(run) : 0 }
+    if (!tr) set(1)
+    else {
+      set(0)
+      new IntersectionObserver(([e]) => {
+        if (e.isIntersecting && a < 1 && !raf) { t0 = performance.now() - a * DUR; raf = requestAnimationFrame(run) }
+        else if (!e.isIntersecting && e.boundingClientRect.top > 0) { cancelAnimationFrame(raf); raf = 0; set(0) }
+      }, { threshold: 0.9 }).observe(el)
+    }
+  } }
 function sweep(draw) {
   const a = Math.round((1 - draw) * 1000) / 1000
   for (const sw of sweeps) {
