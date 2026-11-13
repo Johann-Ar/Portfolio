@@ -14,8 +14,8 @@ const projects = allProjects.filter((p) => !p.hidden)   // projets masqués : ni
 const lastOngoing = (list) => [...list.filter((x) => !x.ongoing), ...list.filter((x) => x.ongoing)]
 
 // version des fichiers du logo (media/ est gardé 7 jours en cache) : l'adresse change dès que le logo change, les
-// téléphones et navigateurs rechargent alors le nouveau logo tout de suite (gl.js reprend ce ?v= pour monogram-sdf.png, monogram-width.png et monogram-along.png)
-const MONO_V = createHash('sha256').update(['monogram-dark-base.svg', 'monogram-light-base.svg', 'monogram-sdf.png', 'monogram-width.png', 'monogram-along.png']
+// téléphones et navigateurs rechargent alors le nouveau logo tout de suite (gl.js reprend ce ?v= pour monogram-sdf.png, monogram-width.png et monogram-along.png ; main.js pour name-along.png)
+const MONO_V = createHash('sha256').update(['monogram-dark-base.svg', 'monogram-light-base.svg', 'monogram-sdf.png', 'monogram-width.png', 'monogram-along.png', 'name-along.png']
   .map((f) => readFileSync(new URL('../public/media/' + f, import.meta.url))).reduce((a, b) => Buffer.concat([a, b]))).digest('hex').slice(0, 10)
 
 export const esc = (s = '') => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c])

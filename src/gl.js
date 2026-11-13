@@ -14,6 +14,7 @@ import { FLOW } from './flow.js'
 import { HERO } from './hero-progress.js'
 import { LOGO_TUNE } from './logo-tune.js'
 import { S_AXIS } from './monogram-path.js'
+import { setNameHeart } from './name-bulge.js'
 
 // roue du logo-kit (source de vérité) : irisColor(p), irisRing(p, Ro) ; irisAt(t) pour une position t sur le cercle
 // (0 = en haut, sens horaire, y vers le bas). fwidth vient de OES_standard_derivatives (repli : 1 px).
@@ -631,9 +632,10 @@ export function createGL(canvas, { reduced }) {
   // boule automatique : la boule du survol, menée le long de l'axe du S (monogram-path.js) de son extrémité du haut à
   // celle du bas ; une deuxième boule part dès que la première est arrivée (elle s'efface vite en bas), puis une pause, en boucle. Le curseur reprend
   // la main dès qu'il approche du S. Rythme d'un cœur au repos (70 bpm : « boum » à 0, « boum » à 0,35 du cycle, repos
-  // jusqu'au suivant), ralenti 2,7 fois pour que chaque passage reste lisible ; repos allongé (cœur plus calme) : cycle
-  // de 3,12 s. Durées en ms
-  const TRACE = { pass: 900, gap: -80, pause: 1400, delay: 3500 }
+  // jusqu'au suivant), ralenti 2,7 fois pour que chaque passage reste lisible. À la suite (même léger chevauchement que
+  // entre les deux boules du S), le battement passe dans le nom : deux boules du centre vers ses deux bouts (name, durée ;
+  // name-bulge.js), puis le repos. Cycle de 4,34 s. Durées en ms
+  const TRACE = { pass: 900, gap: -80, name: 1300, pause: 1400, delay: 3500 }
   const AXL = [0]; for (let i = 1; i < S_AXIS.length; i++) AXL.push(AXL[i - 1] + Math.hypot(S_AXIS[i][0] - S_AXIS[i - 1][0], S_AXIS[i][1] - S_AXIS[i - 1][1]))
   const axisAt = (u) => {   // point de l'axe à la fraction u de sa longueur
     const L = Math.min(1, Math.max(0, u)) * AXL[AXL.length - 1]; let i = 1
@@ -1002,7 +1004,7 @@ export function createGL(canvas, { reduced }) {
           if (!reduced && xf[4] >= 1 && v.maskW) {
             traceT0 ??= now + TRACE.delay
             if (hov) traceT0 = Math.max(traceT0, now + TRACE.delay)   // survol : le cycle attend que le curseur parte
-            const tc = now - traceT0, cyc = 2 * TRACE.pass + TRACE.gap + TRACE.pause, m = tc < 0 ? -1 : tc % cyc
+            const tc = now - traceT0, cyc = 2 * TRACE.pass + 2 * TRACE.gap + TRACE.name + TRACE.pause, m = tc < 0 ? -1 : tc % cyc
             // deuxième boule : elle part un peu avant l'arrivée de la première (gap < 0), qui s'efface vite en bas
             const s2 = TRACE.pass + TRACE.gap, pass = m < 0 ? 0 : m >= s2 && m < s2 + TRACE.pass ? 2 : m < TRACE.pass ? 1 : 0
             const k = pass === 2 ? (m - s2) / TRACE.pass : pass === 1 ? m / TRACE.pass : -1
@@ -1013,11 +1015,14 @@ export function createGL(canvas, { reduced }) {
               tx = ax; ty = ay; auto = k < 0.82; ending = !auto
             }
             tracePass = hov ? 0 : pass
+            // battement du nom, à la suite de la deuxième boule du S
+            const n0 = 2 * TRACE.pass + 2 * TRACE.gap
+            setNameHeart(!scrollBall && m >= n0 && m < n0 + TRACE.name ? (m - n0) / TRACE.name : -1)
             if (scrollBall) {
               traceT0 = Math.max(traceT0, now + TRACE.delay); tracePass = 0
               ;[tx, ty] = axisAt(sq); auto = true; ending = false
             }
-          }
+          } else setNameHeart(-1)
           const near = hov || auto
           // début du défilement : une boule déjà là (survol, battement) s'éteint d'abord sur place, sans glisser vers sa
           // nouvelle place ; la boule du défilement naît ensuite là où elle doit être dans le S

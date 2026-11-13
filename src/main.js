@@ -7,7 +7,7 @@ import { createGL, loaderRadius } from './gl.js'
 import { createBackdrop } from './backdrop.js'
 import { IRIS } from './iris-config.js'
 import { startFxCss } from './fx-css.js'
-import { sweepCanvas } from './sweep-canvas.js'
+import { nameTrace } from './name-trace.js'
 import { swapLanguage } from './lang-swap.js'
 import { HERO, updateHero } from './hero-progress.js'
 import { createLoader } from './loader.js'
@@ -160,8 +160,8 @@ document.addEventListener('click', (e) => {
   card.querySelector('a[href]')?.click()
 })
 // retour à l'accueil par le logo : jusqu'à l'instant de la scène d'accueil où la présentation vient tout juste d'être
-// entièrement affichée (avancée 0,86, voir plus bas : elle s'allume de 0,60 à 0,86)
-const HOME_P = 0.86
+// entièrement affichée (avancée 0,94, voir plus bas : elle s'allume de 0,78 à 0,94)
+const HOME_P = 0.94
 const homeY = () => (hero ? hero.offsetTop + HOME_P * Math.max(0, hero.offsetHeight - innerHeight) : 0)
 // depuis l'accueil : la page remonte vite, comme un défilement rapide lancé d'un coup (départ franc), puis ralentit
 // nettement jusqu'à l'arrêt (ease-out quintique)
@@ -519,33 +519,20 @@ let heroWords = [...document.querySelectorAll('.hero__line .w')]
 if (!heroWords.length) root.classList.add('hero-done')   // pages sans accueil : tout est visible d'emblée
 let heroOn = -1
 const wordsSvg = [...document.querySelectorAll('.hero .studio__word')]
-// nom de l'accueil en « balayage » (src/logotype-svg.js) : trois copies (très floue, un peu floue, nette) découvertes
-// par des dégradés ; pour chaque arrêt (xn : distance au centre du mot, de 0 à 1), l'avancée locale s (0 : rien, 1 : net et
-// plein) suit une bande qui part du centre vers les deux côtés, plafonnée par la retenue (rien n'est entièrement net avant la fin)
-const sweeps = wordsSvg.filter((w) => w.dataset.bande).map((el) => ({ el, stops: [...el.querySelectorAll('.bal-g')].map((g) => [...g.querySelectorAll('stop')]),
-  b: +el.dataset.bande, r: +el.dataset.retenue, last: -1, cv: reduced ? null : sweepCanvas(el) }))
+// nom de l'accueil : apparition tracée au défilement (name-trace.js, comme le S), dessinée dans un canvas pendant le
+// tracé ; avant et après, le SVG (rien, ou le nom entier). Sans WebGL (ou carte pas encore prête) : simple fondu du SVG
+const nameMap = (() => { const s = document.querySelector('.brand__mark')?.src; if (!s) return ''; const u = new URL('name-along.png', s); u.search = new URL(s).search; return u.href })()
+const sweeps = wordsSvg.filter((w) => w.classList.contains('logotype--balayage')).map((el) => ({ el, last: -1, tr: reduced || !nameMap ? null : nameTrace(el, nameMap) }))
 initNameBulge([...sweeps.map((sw) => sw.el), ...document.querySelectorAll('.logotype--renfle')])   // renflement du nom au survol (name-bulge.js)
-// poids des trois copies pour une avancée s : de la très floue à la nette ; leur somme vaut s (l'opacité)
-const sweepW = (s) => s <= 0.5 ? [s * (1 - 2 * s), 2 * s * s, 0] : [0, s * (2 - 2 * s), s * (2 * s - 1)]
 function sweep(draw) {
   const a = Math.round((1 - draw) * 1000) / 1000
   for (const sw of sweeps) {
-    if (a === sw.last) continue
-    sw.last = a
-    const n = sw.stops[0].length, cap = 1 - sw.r + sw.r * a
-    const ws = [new Array(n), new Array(n), new Array(n)]
-    for (let i = 0; i < n; i++) {
-      // du centre vers les côtés : xn = distance au centre du mot (0 au centre, 1 aux deux bords)
-      const xn = Math.abs(i / (n - 1) - 0.5) * 2, s = Math.min(1, Math.max(0, (a * (1 + sw.b) - xn) / sw.b)) * cap, w = sweepW(s)
-      for (let k = 0; k < 3; k++) ws[k][i] = +w[k].toFixed(3)
-    }
-    // balayage en cours : copies floues dessinées dans le canvas (sweep-canvas.js : même calcul, sans filtres ni masques
-    // SVG recalculés à chaque image), copie nette dans le SVG ; avant et après, ou canvas pas prêt : SVG d'origine seul
-    const live = !!sw.cv?.ready && a > 0 && a < 1
-    if (live) sw.cv.draw(ws)
-    for (let k = live ? 2 : 0; k < 3; k++) for (let i = 0; i < n; i++) sw.stops[k][i].setAttribute('stop-opacity', ws[k][i].toFixed(3))
-    sw.cv?.show(live)
-    sw.el.classList.toggle('bal-net', a >= 1)   // entièrement net : les copies floues ne sont plus calculées
+    const ready = !!sw.tr?.ready
+    if (a === sw.last && ready === sw.wasReady) continue
+    sw.last = a; sw.wasReady = ready
+    if (ready) { sw.tr.draw(a); sw.tr.show(a > 0 && a < 1) } else sw.tr?.draw(a)
+    sw.el.style.opacity = ready ? (a > 0 ? '' : '0') : String(a)
+    sw.el.classList.toggle('bal-net', a >= 1)   // nom entier : renflement au survol possible (name-bulge.js)
   }
 }
 // textes des sections : apparition mot à mot quand ils arrivent à l'écran, une seule fois par chargement de page
@@ -638,18 +625,17 @@ function scrollEffects() {
   const hp = HERO.p
   const k = (a, b) => Math.min(1, Math.max(0, (hp - a) / (b - a)))
   if (heroWords.length) {
-    // le logo se place (0 à 0,54), le nom se trace (0,14 à 0,70), la présentation s'allume (0,60 à 0,86) ; puis un court
-    // temps calme (0,86 à 1) avant que le logo parte vers la barre
-    const on = Math.round(k(0.6, 0.86) * heroWords.length)
+    // le logo se place (0 à 0,54), le nom se trace (0,42 à 0,78), puis la présentation s'allume (0,78 à 0,94) ;
+    // puis un court temps calme (0,94 à 1) avant que le logo parte vers la barre
+    const on = Math.round(k(0.78, 0.94) * heroWords.length)
     if (on !== heroOn) { heroWords.forEach((w, i) => w.classList.toggle('on', i < on)); heroOn = on }
     // la barre du haut et le reste du site n'apparaissent qu'une fois la scène de l'accueil finie, quand l'écran
     // commence à descendre (jusque-là : le fond, le gros logo et la présentation seulement)
     if (on === heroWords.length && hp >= 0.999 && !root.classList.contains('hero-done')) root.classList.add('hero-done')
   }
   // le nom existe en deux versions (une ligne / deux lignes sur mobile) : même avancée pour les deux
-  // le nom apparaît tôt et sur une longue course ; il est entièrement net avant que la présentation commence (0,6)
-  const p = k(0.12, 0.5)
-  sweep(1 - Math.min(1, p * 1.2))
+  // le nom commence à se tracer pendant la fin du placement du logo (0,42) ; il est entier avant la présentation
+  sweep(1 - k(0.42, 0.78))
   wordBlocks.forEach((b, j) => {
     const r = blockRects[j]
     const p = Math.min(1, Math.max(0, (vh * 0.85 - r.top) / (r.height + vh * 0.25)))

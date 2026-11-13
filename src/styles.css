@@ -694,12 +694,11 @@ html.brand-fade .fiche-brand { transition: opacity 0.4s var(--ease-flow), visibi
    net avant que la présentation commence. Sur une ligne (ordinateur) ou JOHANN au-dessus de ARATA (mobile). */
 .hero__name { color: var(--ink); }
 .hero .studio__word.hero__name { height: auto; }
-/* apparition (main.js, sweep) : de gauche à droite, chaque endroit du nom passe à son tour de flou et transparent à net
-   et plein, comme les mots des textes mais en continu ; le nom ne bouge pas. Entièrement net exactement à la fin de
-   sa phase (avant la présentation). Le dessin a une marge (--m, part de sa largeur) pour le halo du flou : la largeur
-   et les marges négatives la compensent, le mot occupe exactement la place --w. */
+/* apparition (main.js, name-trace.js) : le nom se trace depuis l'espace entre JOHANN et ARATA, comme le S, dans un
+   canvas posé dessus ; le nom ne bouge pas. Le dessin a une marge (--m, part de sa largeur) : la largeur et les marges
+   négatives la compensent, le mot occupe exactement la place --w. */
 .hero__word .hero__name.logotype--balayage { width: calc(var(--w) * (1 + 2 * var(--m))); margin: calc(var(--w) * -1 * var(--m)); }
-.bal-net .bal-c0, .bal-net .bal-c1, .bal-cv .bal-c0, .bal-cv .bal-c1 { display: none; }   /* .bal-cv : copies floues dans le canvas (sweep-canvas.js) */
+.tr-on > .bal-net-use, .logotype--balayage:not(.bal-net) .bal-r { visibility: hidden; }   /* tracé en cours : le canvas à la place du nom */
 .hero__word .hero__name.studio__word--line { --w: min(84vw, 1560px); }
 @media (max-width: 760px) { .hero__word .hero__name.studio__word--stack { --w: min(80vw, 420px); } }
 /* pied de page : « © … » en bas à gauche, JOHANN ARATA (logotype vectorisé du pack) au centre, sans animation ni effet
