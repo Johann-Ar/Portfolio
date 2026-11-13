@@ -38,6 +38,7 @@ langLink?.addEventListener('click', () => {
 
 /* Réglages Iris en direct (?debug=iris) : en développement seulement, absent du site publié */
 if (import.meta.env.DEV && new URLSearchParams(location.search).get('debug') === 'iris') import('./iris-debug.js').then((m) => m.mountIrisDebug())
+if (import.meta.env.DEV) import('./logo-tune-panel.js').then((m) => m.mountLogoTune())   // barre de contraste d'épaisseur du S (développement seulement)
 
 /* Petit logo de la barre du haut : visible seulement quand le gros logo de l'accueil n'est plus à l'écran */
 const heroSlot = document.querySelector('.hero__slot')
@@ -521,6 +522,7 @@ const wordsSvg = [...document.querySelectorAll('.hero .studio__word')]
 // plein) suit une bande qui part du centre vers les deux côtés, plafonnée par la retenue (rien n'est entièrement net avant la fin)
 const sweeps = wordsSvg.filter((w) => w.dataset.bande).map((el) => ({ el, stops: [...el.querySelectorAll('.bal-g')].map((g) => [...g.querySelectorAll('stop')]),
   b: +el.dataset.bande, r: +el.dataset.retenue, last: -1, cv: reduced ? null : sweepCanvas(el) }))
+// renflement du nom au survol (name-bulge.js) : désactivé
 // poids des trois copies pour une avancée s : de la très floue à la nette ; leur somme vaut s (l'opacité)
 const sweepW = (s) => s <= 0.5 ? [s * (1 - 2 * s), 2 * s * s, 0] : [0, s * (2 - 2 * s), s * (2 * s - 1)]
 function sweep(draw) {

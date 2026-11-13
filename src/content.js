@@ -340,6 +340,7 @@ export const research = {
   ),
   items: [
     {
+      ongoing: true,   // en cours : toujours en dernier de sa partie (render.js)
       kind: T('Mémoire de master', 'Master’s thesis'), when: T('En cours', 'In progress'),
       title: T('Reconstruction volumétrique du réel capturé', 'Volumetric reconstruction of captured reality'),
       text: T('Gaussian splatting 3D et 4D ; ce qui sépare captation, reconstruction et génération par IA.', '3D and 4D Gaussian splatting; what separates capture, reconstruction and AI generation.'),

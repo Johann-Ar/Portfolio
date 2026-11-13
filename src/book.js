@@ -48,7 +48,7 @@ async function mount(fig) {
     })
     book.loadFromHTML(pages)
     // pages voisines chargées à chaque tourne ; le reste, dans l'ordre, quand le navigateur est libre
-    book.on('flip', (e) => { for (let d = -2; d <= 6; d++) load(e.data + d); center(e.data) })
+    book.on('flip', (e) => { for (let d = -2; d <= 6; d++) load(e.data + d); center(e.data); fig.classList.add('book--used') })   // indication de clic effacée
     let next = FIRST
     const idle = window.requestIdleCallback || ((f) => setTimeout(f, 200))
     const fill = () => { if (next < n) load(next++).then(() => idle(fill)) }

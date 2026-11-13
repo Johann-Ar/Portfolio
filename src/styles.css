@@ -743,6 +743,17 @@ html.brand-fade .fiche-brand { transition: opacity 0.4s var(--ease-flow), visibi
 .book__bar { display: block; width: min(220px, 50vw); height: 3px; border-radius: 3px; background: rgba(255, 255, 255, .18); overflow: hidden; }
 .book__bar i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, #22E0D8, #FD35A5); transition: width .3s; }
 .book[data-state="error"] .book__load { display: none; }
+/* indication de clic : apparaît quand le livre est prêt, respire doucement, s'efface dès la première page tournée */
+.book__hint { position: absolute; left: 50%; bottom: 4.5%; z-index: 2; margin: 0; display: flex; align-items: center; gap: 8px;
+  padding: 7px 14px 7px 11px; border-radius: 999px; font: 500 12px/1 var(--font-text); letter-spacing: .01em; color: #fff;
+  background: rgba(20, 20, 22, .62); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, .14);
+  pointer-events: none; white-space: nowrap; opacity: 0; transform: translate(-50%, 6px); transition: opacity .5s, transform .5s; }
+.book__hint svg { flex: none; animation: book-tap 1.8s ease-in-out infinite; transform-origin: 50% 80%; }
+.book__hint-t { display: none; }
+@media (hover: none) { .book__hint-p { display: none; } .book__hint-t { display: inline; } }
+.book[data-state="ready"]:not(.book--used) .book__hint { opacity: 1; transform: translate(-50%, 0); transition-delay: .6s; }
+@keyframes book-tap { 0%, 60%, 100% { transform: none; } 30% { transform: translateY(2px) scale(.9); } }
+@media (prefers-reduced-motion: reduce) { .book__hint svg { animation: none; } }
 
 /* ——— surlignage en masque (src/hl.js) ———
    l'aplat et le texte inversé forment un seul calque (.hl, copie du bouton), découvert de gauche à droite par clip-path :

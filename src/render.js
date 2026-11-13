@@ -10,10 +10,12 @@ import sizes from './media-sizes.json' with { type: 'json' }
 import { logotypeSvg, resetLogotypes } from './logotype-svg.js'
 
 const projects = allProjects.filter((p) => !p.hidden)   // projets masqués : ni vignette ni fiche
+// travaux en cours (ongoing) : toujours en dernier de leur partie, quel que soit leur rang dans content.js
+const lastOngoing = (list) => [...list.filter((x) => !x.ongoing), ...list.filter((x) => x.ongoing)]
 
 // version des fichiers du logo (media/ est gardé 7 jours en cache) : l'adresse change dès que le logo change, les
-// téléphones et navigateurs rechargent alors le nouveau logo tout de suite (gl.js reprend ce ?v= pour monogram-sdf.png)
-const MONO_V = createHash('sha256').update(['monogram-iris-dark.svg', 'monogram-iris-light.svg', 'monogram-sdf.png']
+// téléphones et navigateurs rechargent alors le nouveau logo tout de suite (gl.js reprend ce ?v= pour monogram-sdf.png et monogram-width.png)
+const MONO_V = createHash('sha256').update(['monogram-dark-base.svg', 'monogram-light-base.svg', 'monogram-sdf.png', 'monogram-width.png']
   .map((f) => readFileSync(new URL('../public/media/' + f, import.meta.url))).reduce((a, b) => Buffer.concat([a, b]))).digest('hex').slice(0, 10)
 
 export const esc = (s = '') => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c])
@@ -59,7 +61,8 @@ export function render(lang) {
       if (x.book) return `<figure class="book" style="--r:1.5" data-book="${m(x.book)}" data-pages="${x.pages}" data-ratio="${x.ratio}" aria-label="${esc(t(x.alt))}">
         <img class="book__poster" src="${m(x.poster)}" alt="" loading="lazy" decoding="async">
         <div class="book__load" aria-hidden="true"><span class="book__bar"><i></i></span><span class="lbl">${lang === 'fr' ? 'Ouverture du livre' : 'Opening the book'}</span></div>
-        <div class="book__mount"></div></figure>`
+        <div class="book__mount"></div>
+        <p class="book__hint" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11V5.5a1.5 1.5 0 0 1 3 0V10m0-.5V4.5a1.5 1.5 0 0 1 3 0V10m0-1a1.5 1.5 0 0 1 3 0v5a7 7 0 0 1-7 7h-.5a6 6 0 0 1-4.7-2.3L3.6 14.6a1.6 1.6 0 0 1 2.4-2.1L9 15"/></svg><span class="book__hint-p">${lang === 'fr' ? 'Cliquez sur une page pour feuilleter' : 'Click a page to turn it'}</span><span class="book__hint-t">${lang === 'fr' ? 'Touchez ou glissez pour feuilleter' : 'Tap or swipe to turn the pages'}</span></p></figure>`
       const [w, h] = sizes[x.src] || [1200, 800]
       // vidéo : lue seulement quand elle est à l'écran (main.js, data-lazy), sinon en pause
       const el = /\.mp4$/.test(x.src)
@@ -112,7 +115,7 @@ export function render(lang) {
   </section>`
   }
 
-  const selected = projects.filter((p) => !p.research)
+  const selected = lastOngoing(projects.filter((p) => !p.research))
   const words = (str) => str.split(' ').map((w) => `<span class="w">${esc(w)}</span>`).join(' ')
   // texte apparaissant mot à mot au défilement (data-sw : main.js, scrollWords) ; tous les textes de l'accueil sauf les
   // vignettes, les boutons et le pied de page (tout en bas, il ne franchirait jamais la ligne : toujours visible) ; **gras** conservé ;
@@ -135,8 +138,8 @@ export function render(lang) {
     <a href="#projets">${esc(t(ui.projects))}</a><a href="#a-propos">${esc(t(ui.studio))}</a><a href="#contact">${esc(t(ui.contact))}</a>
   </nav>
   <a href="#top" class="brand" aria-label="Holosene">
-    <img class="brand__mark only-dark" draggable="false" src="${root}media/monogram-iris-dark.svg?v=${MONO_V}" alt="Holosene" width="470" height="576">
-    <img class="brand__mark only-light" draggable="false" src="${root}media/monogram-iris-light.svg?v=${MONO_V}" alt="Holosene" width="470" height="576">
+    <img class="brand__mark only-dark" draggable="false" src="${root}media/monogram-dark-base.svg?v=${MONO_V}" alt="Holosene" width="470" height="576">
+    <img class="brand__mark only-light" draggable="false" src="${root}media/monogram-light-base.svg?v=${MONO_V}" alt="Holosene" width="470" height="576">
   </a>
   <div class="topbar__tools">
     <button class="theme-toggle" type="button" data-light="${esc(t(ui.themeLight))}" data-dark="${esc(t(ui.themeDark))}" aria-label="${esc(t(ui.themeLight))}"><span class="theme-toggle__t">${lang === "fr" ? "Sombre" : "Dark"}</span></button>
@@ -146,13 +149,13 @@ export function render(lang) {
 
 <main id="top">
   <section class="hero" id="accueil" aria-labelledby="hero-t">
-    <span class="hero__dock" aria-hidden="true"><img class="only-dark" src="${root}media/monogram-iris-dark.svg?v=${MONO_V}" alt="" width="470" height="576" draggable="false"><img class="only-light" src="${root}media/monogram-iris-light.svg?v=${MONO_V}" alt="" width="470" height="576" draggable="false"></span>
+    <span class="hero__dock" aria-hidden="true"><img class="only-dark" src="${root}media/monogram-dark-base.svg?v=${MONO_V}" alt="" width="470" height="576" draggable="false"><img class="only-light" src="${root}media/monogram-light-base.svg?v=${MONO_V}" alt="" width="470" height="576" draggable="false"></span>
     <div class="hero__pin">
       <div class="hero__view" data-gl="mark" data-cell="6" role="img" aria-label="${esc(t(ui.lensLabel))}">
         <img src="${m('riviere-calme.webp')}" alt="" decoding="async" fetchpriority="high">
       </div>
       <div class="hero__copy">
-        <div class="hero__slot" aria-hidden="true"><img class="hero__mark only-dark" src="${root}media/monogram-iris-dark.svg?v=${MONO_V}" alt="" width="470" height="576"><img class="hero__mark only-light" src="${root}media/monogram-iris-light.svg?v=${MONO_V}" alt="" width="470" height="576"></div>
+        <div class="hero__slot" aria-hidden="true"><img class="hero__mark only-dark" src="${root}media/monogram-dark-base.svg?v=${MONO_V}" alt="" width="470" height="576"><img class="hero__mark only-light" src="${root}media/monogram-light-base.svg?v=${MONO_V}" alt="" width="470" height="576"></div>
         <h1 id="hero-t" class="hero__word"><span class="sr">Johann Arata · Holosene</span>${logotypeSvg({ mot: 'johann-arata', decoratif: true, balayage: true, className: 'studio__word hero__name studio__word--line' })}${logotypeSvg({ mot: 'johann-arata', decoratif: true, empile: true, balayage: true, className: 'studio__word hero__name studio__word--stack' })}</h1>
         <p class="hero__line" data-hwords>${words(t(studio))}</p>
         <a class="hero__cta" href="#projets" aria-label="${lang === 'fr' ? 'Voir les projets' : 'See the work'}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9.5l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
@@ -173,7 +176,7 @@ export function render(lang) {
       <h2 class="disp" id="research-t" data-sw>${seq(t(ui.research))}</h2>
       <p class="lbl sec-head__sub" data-sw>${seq(t(research.intro))}</p>
     </header>
-    ${rail(research.items.filter((r) => !r.hidden).map((r, i) => card({ id: `recherche-${r.slug || i + 1}`, href: r.href, image: t(r.image), pos: r.pos, text: r.label && t(r.label), badge: r.when && t(r.when), title: t(r.title), genre: t(r.kind), todo: r.todo })), lang === 'fr' ? 'Recherche, défilement horizontal' : 'Research, horizontal scroll')}
+    ${rail(lastOngoing(research.items.filter((r) => !r.hidden)).map((r, i) => card({ id: `recherche-${r.slug || i + 1}`, href: r.href, image: t(r.image), pos: r.pos, text: r.label && t(r.label), badge: r.when && t(r.when), title: t(r.title), genre: t(r.kind), todo: r.todo })), lang === 'fr' ? 'Recherche, défilement horizontal' : 'Research, horizontal scroll')}
   </section>
 
   <section class="about wrap" id="a-propos" aria-labelledby="about-t">
@@ -193,12 +196,12 @@ export function render(lang) {
 
 <footer class="foot wrap">
   <p class="lbl">© ${new Date().getFullYear()} Portfolio · Johann Arata</p>
-  ${logotypeSvg({ mot: 'johann-arata', className: 'foot__logo' })}
+  ${logotypeSvg({ mot: 'johann-arata', className: 'foot__logo', renflement: true })}
   <a class="lbl" href="${root}mentions-legales.html">${esc(t(ui.legal))}</a>
 </footer>
 
 ${projects.map(fiche).join('')}
 <div class="fiche-veil" aria-hidden="true"></div>
-<a class="fiche-brand" href="#top" aria-label="Holosene, accueil"><img class="only-dark" src="${root}media/monogram-iris-dark.svg?v=${MONO_V}" alt="" width="470" height="576" draggable="false"><img class="only-light" src="${root}media/monogram-iris-light.svg?v=${MONO_V}" alt="" width="470" height="576" draggable="false"></a>
+<a class="fiche-brand" href="#top" aria-label="Holosene, accueil"><img class="only-dark" src="${root}media/monogram-dark-base.svg?v=${MONO_V}" alt="" width="470" height="576" draggable="false"><img class="only-light" src="${root}media/monogram-light-base.svg?v=${MONO_V}" alt="" width="470" height="576" draggable="false"></a>
 `
 }
