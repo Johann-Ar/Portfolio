@@ -11,7 +11,8 @@ const SKIP = '.hl, .card--copy, .side, .fx, .gl-card, canvas, script, style, .lo
 const WHOLE = '[data-seq], [data-hwords], [data-sw]'
 const ATTRS = ['aria-label', 'alt', 'title', 'href', 'hreflang', 'lang', 'data-copy', 'data-done', 'data-light', 'data-dark', 'content']
 
-const cls = (e) => (e.getAttribute('class') || '').split(' ')[0]   // premier nom de classe (aussi pour les SVG)
+// classes d'un élément (aussi pour les SVG)
+const classes = (e) => (e.getAttribute('class') || '').split(/\s+/).filter(Boolean)
 // éléments « serveur » d'un sous-arbre, dans l'ordre, sans ceux ajoutés par le script ni l'intérieur des blocs entiers
 function serverEls(root) {
   const out = []
@@ -42,7 +43,8 @@ export async function swapLanguage(url, { onWhole, onDone }) {
   // la page en place peut contenir des éléments en plus (ajoutés par une extension du navigateur, un traducteur, un
   // gestionnaire de mots de passe…) : on aligne dans l'ordre, en sautant ce qui n'existe pas dans la page de l'autre
   // langue ; seul un élément du site introuvable fait abandonner (chargement normal)
-  const same = (x, y) => x.tagName === y.tagName && cls(x) === cls(y)
+  // même balise, et toutes les classes de la page de l'autre langue présentes (le script en ajoute : hl-on, on, tr-on…)
+  const same = (x, y) => x.tagName === y.tagName && classes(x).every((c) => y.classList.contains(c))
   const b = []
   for (let i = 0, j = 0; i < a.length; i++) {
     while (j < all.length && !same(a[i], all[j])) j++
