@@ -7,9 +7,11 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "todo": "node scripts/todo.mjs"
+    "todo": "node scripts/todo.mjs",
+    "test:lang": "node scripts/test-lang.mjs"
   },
   "devDependencies": {
+    "playwright": "^1.65.0",
     "vite": "^7.3.7"
   },
   "dependencies": {

@@ -31,6 +31,9 @@ jobs:
       - run: npm run build
         env:
           BASE_PATH: /Portfolio/
+      # pas de mise en ligne si FR/EN recharge la page (scripts/test-lang.mjs)
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:lang
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist

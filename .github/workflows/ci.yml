@@ -21,3 +21,6 @@ jobs:
       - run: npm ci
       - run: npm run build
       - run: npm run todo
+      # FR/EN doit changer la langue sans recharger la page (scripts/test-lang.mjs)
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:lang
