@@ -5,7 +5,7 @@
  * - normale 3D tirée de la pente du profil ; réfraction par la loi de Snell (indice ~1,5, légèrement différent pour
  *   R, V et B : dispersion) ; le fond est lu à l'endroit dévié ;
  * - réflexion de Fresnel (approximation de Schlick, F0 = 0,04) d'un environnement de studio, et reflet spéculaire net.
- * Le même modèle existe en GLSL (GLASS_GLSL, utilisé par gl.js) et en JavaScript (glassJS, pour le chargeur).
+ * Modèle en GLSL (GLASS_GLSL, utilisé par gl.js).
  */
 export const GLASS_GLSL = `
 // profil du biseau : hauteur h(x), x = distance / largeur du biseau (0 à l'arête, 1 sur le plat)
@@ -29,24 +29,6 @@ vec3 glassSpec(vec3 n) {
   vec3 L = normalize(vec3(-0.55, -0.65, 0.55)), H = normalize(L + vec3(0.0, 0.0, 1.0));
   return vec3(1.0) * pow(max(dot(n, H), 0.0), 36.0) * 1.1;
 }`
-
-const clamp = (v, a, b) => Math.min(b, Math.max(a, v))
-const H = (x) => { x = clamp(x, 0, 1); return Math.pow(1 - Math.pow(1 - x, 4), 0.25) }
-
-/** Même modèle en JavaScript (fond derrière = noir uni : seules la réflexion et la teinte se voient). */
-export function glassJS(d, nx, ny, B, T, tint) {
-  const x = d / B, e = 0.02
-  const slope = (H(x + e) - H(x - e)) / (2 * e) * T / B
-  let n = [nx * slope, ny * slope, 1]; const l = Math.hypot(...n); n = n.map((v) => v / l)
-  const F = 0.04 + 0.96 * Math.pow(1 - clamp(n[2], 0, 1), 5)
-  const r = [-2 * n[2] * n[0], -2 * n[2] * n[1], 1 - 2 * n[2] * n[2]].map((v) => -v)   // reflet de la vue (0, 0, -1)
-  const top = clamp((-r[1] + 0.2) / 1.1, 0, 1), top2 = top * top * (3 - 2 * top)
-  const k = [-0.55, -0.65, 0.5], kl = Math.hypot(...k)
-  const key = Math.pow(Math.max((r[0] * k[0] + r[1] * k[1] + r[2] * k[2]) / kl, 0), 7)
-  const Lh = [-0.55, -0.65, 1.55], lh = Math.hypot(...Lh)
-  const spec = Math.pow(Math.max((n[0] * Lh[0] + n[1] * Lh[1] + n[2] * Lh[2]) / lh, 0), 36) * 1.1
-  return tint.map((t) => (0.05 + 0.9 * top2 + 2.2 * key) * F * (0.35 + 0.65 * t) + t * 0.07 * (1 - F) + spec + Math.exp(-d / 1.0) * 0.4 * t)
-}
 
 /** Distance euclidienne à l'extérieur de la forme (algorithme de Felzenszwalb et Huttenlocher), masque binaire. */
 export function insideDistance(inside, w, h) {

@@ -19,8 +19,6 @@ import { S_AXIS } from './monogram-path.js'
 // (0 = en haut, sens horaire, y vers le bas). fwidth vient de OES_standard_derivatives (repli : 1 px).
 const IRIS_GLSL = `#ifndef GL_OES_standard_derivatives
 #define fwidth(x) (1.0)
-#define dFdx(x) (0.0)
-#define dFdy(x) (0.0)
 #endif
 ${KIT_IRIS}
 vec3 irisAt(float t) { float a = t * 6.2831853; return irisColor(vec2(sin(a), -cos(a))); }`
@@ -58,7 +56,6 @@ uniform sampler2D uMaskB;  // champ de distance signée du monogramme
 uniform sampler2D uMaskA;  // position le long du S en 16 bits (monogram-along.png : r octet fort, g octet faible)
 uniform sampler2D uMaskW;  // demi-épaisseur locale du S (monogram-width.png, unités × 255 / 80)
 uniform vec2 uWidthK;      // contraste d'épaisseur du S : coefficient − 1 (0 : tel quel), demi-épaisseur moyenne (unités)
-uniform vec2 uCanvas;      // taille de la toile (px écran)
 uniform float uFloor;   // taille minimale des points dans le masque
 uniform float uRadius;  // coins arrondis (0 : aucun)
 uniform vec3 uLens;     // centre (px CSS), rayon intérieur
@@ -66,12 +63,10 @@ uniform float uLensO;   // rayon extérieur de l'anneau
 uniform float uSoft;    // largeur (px) du fondu intérieur de l'anneau ; la loupe se resserre d'autant
 uniform float uGlass;   // survol d'une carte : bord de verre (0 à 1)
 uniform vec4 uClip;     // piste horizontale : bords gauche et droit (px, dans la vue), largeur du fondu
-uniform float uCardBg;  // gris du fond des cartes
 uniform sampler2D uText; // texte net de la vignette (alpha), à la résolution de l'écran
 uniform float uHasText;
 uniform float uColor;   // 1 : points de la couleur de l'image (dégradé « En cours »)
 uniform vec4 uScr;      // coin haut gauche de la vue à l'écran (px), taille de l'écran (px)
-uniform float uTime;
 uniform vec4 uMarkXf;   // accueil : monogramme, centre (px), hauteur (px), rotation (rad)
 uniform vec4 uTip;      // apparition du S : point de l'axe au front (unités), front (position le long du tracé), longueur du tracé
 uniform vec2 uTipT;     // tangente de l'axe au front (unitaire ; nulle : carte de position pas encore chargée)
@@ -493,7 +488,7 @@ export function createGL(canvas, { reduced }) {
   gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer())
   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW)
   const aLoc = gl.getAttribLocation(prog, 'a'); gl.enableVertexAttribArray(aLoc); gl.vertexAttribPointer(aLoc, 2, gl.FLOAT, false, 0, 0)
-  const U = {}; for (const n of ['uTex', 'uMask', 'uRes', 'uOrigin', 'uImg', 'uPos', 'uDpr', 'uCell', 'uReveal', 'uFade', 'uHasMask', 'uFloor', 'uRadius', 'uLens', 'uLensO', 'uSoft', 'uGlass', 'uEye', 'uMarkXf', 'uBg', 'uMaskB', 'uCanvas', 'uClip', 'uCardBg', 'uColor', 'uScr', 'uTime', 'uText', 'uHasText', 'uMono', 'uInk', 'uEdgeFloor', 'uFlow', 'uHal', 'uMaskW', 'uWidthK', 'uTip', 'uMaskA', 'uTipT']) U[n] = gl.getUniformLocation(prog, n)
+  const U = {}; for (const n of ['uTex', 'uMask', 'uRes', 'uOrigin', 'uImg', 'uPos', 'uDpr', 'uCell', 'uReveal', 'uFade', 'uHasMask', 'uFloor', 'uRadius', 'uLens', 'uLensO', 'uSoft', 'uGlass', 'uEye', 'uMarkXf', 'uBg', 'uMaskB', 'uClip', 'uColor', 'uScr', 'uText', 'uHasText', 'uMono', 'uInk', 'uEdgeFloor', 'uFlow', 'uHal', 'uMaskW', 'uWidthK', 'uTip', 'uMaskA', 'uTipT']) U[n] = gl.getUniformLocation(prog, n)
   gl.uniform1i(U.uTex, 0); gl.uniform1i(U.uMask, 1); gl.uniform1i(U.uText, 3); gl.uniform1i(U.uMaskB, 5)
   gl.uniform1f(U.uHal, FX.halation)
   gl.uniform4f(U.uMono, MONO_W, MONO_O[0], MONO_O[1], 0)
@@ -656,7 +651,8 @@ export function createGL(canvas, { reduced }) {
     return [a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k, (b[0] - a[0]) / sl, (b[1] - a[1]) / sl]
   }
   const revealFront = (r) => -0.09 + 1.18 * r   // avant le haut du S → après son bas (le bout rond naît et sort en entier)
-  let traceT0 = null, tracePass = 0, heroPT = -1e9, heroPL = 0
+  let traceT0 = null, tracePass = 0, heroPT = -1e9, heroPL = 0, sbOn = false, sbFade = false
+  const ss01 = (x) => { x = Math.min(1, Math.max(0, x)); return x * x * (3 - 2 * x) }
   let sdfB = null, widthRef = 50   // demi-épaisseur moyenne du S (unités), recalculée au chargement de la carte
   const sdS = (x, y) => {
     if (!sdfB) return -64
@@ -805,7 +801,7 @@ export function createGL(canvas, { reduced }) {
   // suivi amorti ; à moins de 1e-4 de la cible (invisible), la valeur s'y pose : une scène immobile est vraiment immobile
   const follow = (a, b, tau, dt) => { const v = a + (b - a) * (1 - Math.exp(-dt / tau)); return Math.abs(b - v) < 1e-4 ? b : v }
 
-  let last = performance.now(), time = 0
+  let last = performance.now()
   // ?debug=perf : temps GPU par image (moyenne de 60 images), et temps JavaScript ; ?fx=0 coupe les zones floues
   // colorées pour comparer. Le temps GPU demande EXT_disjoint_timer_query (Chrome, Firefox ; pas Safari ni iOS).
   const perfOn = new URLSearchParams(location.search).get('debug') === 'perf'
@@ -830,7 +826,6 @@ export function createGL(canvas, { reduced }) {
   let halSent = -1, lastSig = null
   function draw(now) {
     const dt = Math.min((now - last) / 1000, 0.05); last = now
-    time += dt
     // gros logo dessiné par la toile (ni relayé par l'image pendant sa montée, ni posé dans la barre) : pleine densité
     const wantHi = hasMark && !markDom && !docked
     // retour à 1,75× seulement une fois le défilement arrêté : changer la taille de la toile pendant le geste ferait un à-coup
@@ -1000,7 +995,8 @@ export function createGL(canvas, { reduced }) {
           if (Math.abs(p - heroPL) > 1e-5) { heroPT = now; heroPL = p }
           const sq = 1 - Math.pow(1 - Math.min(1, Math.max(0, p / 0.54)), 3)
           const scrollBall = !reduced && xf[4] >= 1 && !!v.maskW && sq > 0.003 && sq < 0.997 && now - heroPT < 350
-          const hov = !scrollBall && hoverDevice && !ptr.touch && !reduced && !FLOW.hoverTarget && xf[4] >= 1 && sdS(tx, ty) > -BULGE_R * 0.5
+          // survol : seulement 0,7 s après la fin de la boule du défilement (pas de saut de la boule vers le curseur)
+          const hov = !scrollBall && now - heroPT > 350 + 700 && hoverDevice && !ptr.touch && !reduced && !FLOW.hoverTarget && xf[4] >= 1 && sdS(tx, ty) > -BULGE_R * 0.5
           // boule automatique (hors survol) : position le long de l'axe, vitesse douce (départ et arrivée ralentis)
           let auto = false, ending = false
           if (!reduced && xf[4] >= 1 && v.maskW) {
@@ -1023,9 +1019,18 @@ export function createGL(canvas, { reduced }) {
             }
           }
           const near = hov || auto
+          // début du défilement : une boule déjà là (survol, battement) s'éteint d'abord sur place, sans glisser vers sa
+          // nouvelle place ; la boule du défilement naît ensuite là où elle doit être dans le S
+          if (scrollBall && !sbOn) { sbOn = true; sbFade = bulge.a > 0.02 && Math.hypot(tx - bulge.x, ty - bulge.y) > 30 }
+          if (!scrollBall) sbOn = sbFade = false
+          if (sbFade && bulge.a < 0.02) { sbFade = false; bulge.a = 0 }
+          if (sbFade) { tx = bulge.x; ty = bulge.y }
           if (bulge.a < 0.01) { bulge.x = tx; bulge.y = ty }   // nouvelle entrée : la balle part du curseur
           bulge.x = follow(bulge.x, tx, 0.07, dt); bulge.y = follow(bulge.y, ty, 0.07, dt)
-          bulge.a = follow(bulge.a, near ? 1 : 0, near ? 0.18 : ending ? 0.05 : 0.22, dt)
+          // boule du défilement : son ampleur suit sa place dans le S comme celle du battement suit le temps (elle naît en
+          // haut du S, s'efface avant d'atteindre le bas, dans un sens comme dans l'autre), au rythme du défilement
+          const sEnv = scrollBall ? ss01(sq / 0.25) * (1 - ss01((sq - 0.8) / 0.15)) : 0
+          bulge.a = sbFade ? follow(bulge.a, 0, 0.05, dt) : scrollBall ? follow(bulge.a, sEnv, sEnv > bulge.a ? 0.12 : 0.06, dt) : follow(bulge.a, near ? 1 : 0, near ? 0.18 : ending ? 0.05 : 0.22, dt)
           sig.push(bulge.x, bulge.y, bulge.a, LOGO_TUNE.contrast, v.maskW ? 1 : 0) }
 
       }
@@ -1088,7 +1093,6 @@ export function createGL(canvas, { reduced }) {
       if (v.maskB) { gl.activeTexture(gl.TEXTURE5); gl.bindTexture(gl.TEXTURE_2D, v.maskB) }
       if (v.maskW) { gl.activeTexture(gl.TEXTURE7); gl.bindTexture(gl.TEXTURE_2D, v.maskW) }
       if (v.maskA) { gl.activeTexture(gl.TEXTURE4); gl.bindTexture(gl.TEXTURE_2D, v.maskA) }
-      gl.uniform2f(U.uCanvas, canvas.width, canvas.height)
       gl.uniform2f(U.uRes, w, h); gl.uniform2f(U.uOrigin, x0, y0); gl.uniform2f(U.uImg, v.img[0], v.img[1]); gl.uniform2f(U.uPos, v.pos[0], v.pos[1])
       gl.uniform1f(U.uEdgeFloor, theme.bg[0] + theme.bg[1] + theme.bg[2] > 1.5 ? 1 : 0.12)   // clair : pas d'effacement (flou CSS aux bords)
       gl.uniform1f(U.uDpr, dpr); gl.uniform1f(U.uCell, v.mark ? 6 : v.cell * (W >= 769 ? 1 / 1.15 : 1) * Math.min(1, Math.max(0.45, W / 1100)) * cellScale   /* PC : un cran plus fin (÷ 1,15) ; trame proportionnelle à la largeur d'écran (mobile : 0,45) */)
@@ -1101,8 +1105,7 @@ export function createGL(canvas, { reduced }) {
       gl.uniform1f(U.uHasText, v.text ? 1 : 0)
       gl.uniform1f(U.uColor, v.color ? 1 : v.glass)   // au survol : la trame passe en couleur (fondu)
       const [dpx, dpy, dcl, dcr] = v.drawPos || [b.left, b.top, cr ? cr.left : 0, cr ? cr.right : 0]
-      gl.uniform4f(U.uScr, dpx, dpy, W, H); gl.uniform1f(U.uTime, reduced ? 0 : time)
-      gl.uniform1f(U.uCardBg, 0)
+      gl.uniform4f(U.uScr, dpx, dpy, W, H)
       if (cr) gl.uniform4f(U.uClip, dcl - dpx, dcr - dpx, W < 769 ? 21 : 80, 0)
       else gl.uniform4f(U.uClip, 0, 0, 0, 0)
       // intérieur de la lentille : l'image d'origine de cette vue (l'anneau est dessiné après, par-dessus tout)

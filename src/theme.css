@@ -23,20 +23,14 @@
   --ink-86: color-mix(in srgb, var(--ink) 93%, var(--bg));   /* texte courant (à peine atténué) */
   --ink-64: color-mix(in srgb, var(--ink) 76%, var(--bg));   /* texte secondaire, étiquettes */
   --ink-40: color-mix(in srgb, var(--ink) 40%, var(--bg));   /* filets appuyés, non textuel */
-  --ink-22: color-mix(in srgb, var(--ink) 22%, var(--bg));   /* bordures */
-  --ink-12: color-mix(in srgb, var(--ink) 12%, var(--bg));   /* filets */
-  --ink-6: color-mix(in srgb, var(--ink) 6%, var(--bg));     /* surfaces */
   /* vignettes : tuiles sombres dans les deux modes (les images y sont rendues en points clairs) */
   --card-bg: var(--bg-dark);
   /* anciens noms de brand/tokens.css (encore utilisés par les styles du site) : redirigés vers le thème */
   --c-black-deep: var(--bg);
   --c-black: var(--bg);
   --c-white: var(--ink);
-  --c-graphite: var(--ink-6);
-  --c-line-dark: var(--ink-12);
   --c-grey: var(--ink-40);
   --c-grey-text: var(--ink-64);
-  --c-grey-light: var(--ink-86);
 }
 
 /* éléments propres à un mode (logos du kit : version dark / light) */

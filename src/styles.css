@@ -59,7 +59,6 @@ a { color: inherit; }
 .loader__c { display: block; animation: loader-in 1.2s var(--ease-flow) 0.08s both; }
 @keyframes loader-in { from { opacity: 0; filter: blur(18px); } 30% { opacity: 1; } to { opacity: 1; filter: none; } }
 @media (prefers-reduced-motion: reduce) { .loader__c { animation: none; } }
-@keyframes spin { to { transform: rotate(360deg); } }
 .skip { position: fixed; left: 12px; top: 12px; z-index: 100; padding: 10px 14px; background: var(--c-white); color: var(--c-black); border-radius: var(--radius-s); transform: translateY(-200%); }
 .skip:focus-visible { transform: none; }
 
@@ -120,7 +119,6 @@ a { color: inherit; }
 /* effets irisés de la marque
    - « blanc de l'œil » : un aplat blanc dont les bords se teintent des couleurs irisées (boutons, grands lettrages)
    - lueur fine : un léger dédoublement irisé pendant les apparitions, qui s'efface pour laisser le blanc */
-:root { --edge-fx: 120px;   /* largeur commune des fondus et de l'aspiration aux bords (référence : bord haut) */ }
 :root { --iris-line: var(--iris-linear); }   /* filets irisés : la roue du kit à plat */
 .btn--light { position: relative; background: none; color: var(--ink); border: 1px solid var(--ink); border-radius: var(--radius-pill); padding: 10px 18px; font: 400 var(--fs-small) var(--font-text); transition: background var(--dur-fast), color var(--dur-fast), box-shadow var(--dur-fast); }
 /* même famille que les pastilles (langue, fermer) : contour fin à l'encre, au survol fond à l'encre et contour épaissi */
@@ -366,7 +364,6 @@ main { position: relative; }   /* pas de contexte d'empilement : le mot de l'acc
 }
 
 /* survol : une ligne irisée fine se trace autour du cadre (pastilles, flèches), puis reste jusqu'à la sortie */
-:root { --iris-wheel: var(--iris-conic); }
 .topbar .lang, .fiche__close, .work__nav { position: relative; transition: background var(--dur-fast), color var(--dur-fast), border-color var(--dur-fast), box-shadow var(--dur-fast); }
 /* pastilles et flèches : contour fin à l'encre (noir en clair, blanc en sombre) ; au survol, fond à l'encre et contour
    épaissi (ombre portée de 1 px : aucune variation de taille) */
@@ -670,7 +667,6 @@ html.brand-fade .fiche-brand { transition: opacity 0.4s var(--ease-flow), visibi
 /* flèche : cachée pendant le défilement (cta-idle-off, main.js), retour en fondu et flou */
 .cta-idle-off .hero__cta { opacity: 0 !important; filter: blur(6px); visibility: hidden; transition: opacity 0.35s var(--ease-flow), filter 0.35s var(--ease-flow), visibility 0.35s !important; }
 /* survol et appui des boutons : une lueur blanche légère autour des lettres (tant que dure le survol ou l'appui) */
-.topbar__nav a:not(.lang), .socials a, .foot a, .mail, .fiche__close, .topbar .lang, .btn--light, .theme-toggle, .fiche__open, .legal a:not(.btn) { --hl-blur: 0px; }
 .topbar__nav a:not(.lang):hover, .socials a:hover, .foot a:hover, .mail:hover, .fiche__close:hover, .topbar .lang:hover, .btn--light:hover, .theme-toggle:hover, .fiche__open:hover, .legal a:not(.btn):hover,
 .topbar__nav a:not(.lang):active, .socials a:active, .foot a:active, .mail:active, .fiche__close:active, .topbar .lang:active, .btn--light:active, .theme-toggle:active, .fiche__open:active { text-shadow: 0 0 2.5px color-mix(in srgb, currentColor 55%, transparent), 0 0 7px rgb(255 255 255 / 0.28), 0 0 16px rgb(255 255 255 / 0.15); }   /* entre-deux : un soupçon de flou des lettres et une lueur blanche douce */
 @media (hover: none) { .topbar__nav a:not(.lang):hover:not(:active), .socials a:hover:not(:active), .foot a:hover:not(:active), .mail:hover:not(:active), .fiche__close:hover:not(:active), .topbar .lang:hover:not(:active), .btn--light:hover:not(:active), .theme-toggle:hover:not(:active), .fiche__open:hover:not(:active) { text-shadow: none; filter: none; } }

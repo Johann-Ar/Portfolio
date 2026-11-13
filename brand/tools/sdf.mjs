@@ -74,9 +74,7 @@ const url = await p.evaluate(({ S_PATH, O_PATH, edt, VB, LOGO_CONTRAST_BASE }) =
   // prend le relais du champ arrondi
   const smin = (a, b, k) => { const h = Math.max(k - Math.abs(a - b), 0) / k; return Math.min(a, b) - h * h * k / 4 }
   const ss = (a, b, v) => { const t = Math.min(1, Math.max(0, (v - a) / (b - a))); return t * t * (3 - 2 * t) }
-  // position le long du tracé (apparition du S, gl.js) : distance géodésique dans le S depuis son extrémité du haut,
-  // ramenée de 0 (haut) à 1 (bas). Chaque pixel prend la valeur du point du S le plus proche, puis lissage : le front
-  // d'apparition traverse le tracé à peu près perpendiculairement
+  // distance géodésique dans le S depuis son extrémité du haut (tranches de l'axe, plus bas)
   // distance géodésique dans le S (chanfrein 3-4, balayages aller-retour répétés jusqu'à stabilité : léger et sûr)
   const geo = (seed) => {
     const D = new Float32Array(W * H).fill(1e9); D[seed] = 0
@@ -100,17 +98,6 @@ const url = await p.evaluate(({ S_PATH, O_PATH, edt, VB, LOGO_CONTRAST_BASE }) =
   const endA = far(geo(any)), DA = geo(endA), endB = far(DA)
   const top = ((endA / W) | 0) <= ((endB / W) | 0) ? endA : endB, Dt = top === endA ? DA : geo(endB)
   const len = Dt[top === endA ? endB : endA]
-  const along = new Float32Array(W * H).fill(-1), aq = new Int32Array(W * H); let ah = 0, at2 = 0
-  for (let i = 0; i < W * H; i++) if (Dt[i] < Infinity) { along[i] = Dt[i] / len; aq[at2++] = i }
-  while (ah < at2) {
-    const i = aq[ah++], X = i % W, Y = (i / W) | 0
-    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
-      const nx = X + dx, ny = Y + dy; if (nx < 0 || ny < 0 || nx >= W || ny >= H) continue
-      const j = ny * W + nx; if (along[j] >= 0) continue
-      along[j] = along[i]; aq[at2++] = j
-    }
-  }
-  blur(along, 14)
   // axe du tracé, de haut en bas (boule automatique, gl.js) : pour chaque tranche de la position le long du tracé, le
   // barycentre des points les plus centraux (pondéré par la distance au bord, à la puissance 4)
   const NP = 120, ax = new Float64Array(NP * 3)
@@ -182,7 +169,7 @@ const url = await p.evaluate(({ S_PATH, O_PATH, edt, VB, LOGO_CONTRAST_BASE }) =
     for (let i = 0; i < W * H; i++) if (hw[i] > r0 && m[i] > 0.01) hw[i] = r0 + (hw[i] - r0) * Math.min(1, num[i] / m[i]) }
 
   const cw = new OffscreenCanvas(W, H), xw = cw.getContext('2d'), iw = xw.createImageData(W, H)
-  for (let i = 0; i < W * H; i++) { const v = Math.round(Math.min(255, Math.max(0, hw[i] / 80 * 255))); iw.data[i * 4] = v; iw.data[i * 4 + 2] = Math.round(Math.min(1, Math.max(0, along[i])) * 255); iw.data[i * 4 + 3] = 255   // B : position le long du tracé
+  for (let i = 0; i < W * H; i++) { const v = Math.round(Math.min(255, Math.max(0, hw[i] / 80 * 255))); iw.data[i * 4] = v; iw.data[i * 4 + 3] = 255   // B : inutilisé (0)
     // G : distance au S côté extérieur, arrondie dans les creux (0 à 64 unités, codée en racine carrée), plus fine que le
     // canal B de la carte de distance (0,5 unité) : contour net et creux arrondis quand le contraste d'épaisseur ou le
     // renflement pousse le bord vers l'extérieur
