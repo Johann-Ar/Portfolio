@@ -12,6 +12,7 @@ import { swapLanguage } from './lang-swap.js'
 import { HERO, updateHero } from './hero-progress.js'
 import { createLoader } from './loader.js'
 import { initBooks } from './book.js'
+import { initNameBulge } from './name-bulge.js'
 import { initHighlights } from './hl.js'
 
 const root = document.documentElement
@@ -38,7 +39,8 @@ langLink?.addEventListener('click', () => {
 
 /* Réglages Iris en direct (?debug=iris) : en développement seulement, absent du site publié */
 if (import.meta.env.DEV && new URLSearchParams(location.search).get('debug') === 'iris') import('./iris-debug.js').then((m) => m.mountIrisDebug())
-if (import.meta.env.DEV) import('./logo-tune-panel.js').then((m) => m.mountLogoTune())   // barre de contraste d'épaisseur du S (développement seulement)
+// barre de contraste d'épaisseur du S (logo-tune-panel.js, développement) : masquée ; pour la rouvrir :
+// if (import.meta.env.DEV) import('./logo-tune-panel.js').then((m) => m.mountLogoTune())
 
 /* Petit logo de la barre du haut : visible seulement quand le gros logo de l'accueil n'est plus à l'écran */
 const heroSlot = document.querySelector('.hero__slot')
@@ -522,7 +524,7 @@ const wordsSvg = [...document.querySelectorAll('.hero .studio__word')]
 // plein) suit une bande qui part du centre vers les deux côtés, plafonnée par la retenue (rien n'est entièrement net avant la fin)
 const sweeps = wordsSvg.filter((w) => w.dataset.bande).map((el) => ({ el, stops: [...el.querySelectorAll('.bal-g')].map((g) => [...g.querySelectorAll('stop')]),
   b: +el.dataset.bande, r: +el.dataset.retenue, last: -1, cv: reduced ? null : sweepCanvas(el) }))
-// renflement du nom au survol (name-bulge.js) : désactivé
+initNameBulge([...sweeps.map((sw) => sw.el), ...document.querySelectorAll('.logotype--renfle')])   // renflement du nom au survol (name-bulge.js)
 // poids des trois copies pour une avancée s : de la très floue à la nette ; leur somme vaut s (l'opacité)
 const sweepW = (s) => s <= 0.5 ? [s * (1 - 2 * s), 2 * s * s, 0] : [0, s * (2 - 2 * s), s * (2 * s - 1)]
 function sweep(draw) {
@@ -745,8 +747,9 @@ Promise.race([
 ]).then(() => finishLoader(() => {
   root.classList.add('is-loaded')
   // fiche ouverte par le lien : rien à attendre ; sinon, fin de l'arrivée du logo (croissance puis glissement)
-  // l'animation du logo dure croissance + glissement ; la page ne se libère qu'à la fin
-  if (!introLocked || ficheOf()) endIntro(); else setTimeout(endIntro, IRIS.intro.grow + IRIS.intro.shift)
+  // l'animation du logo dure croissance + apparition du S (plus longue que le glissement) ; la page ne se libère et les
+  // autres éléments de l'accueil (barre du haut, flèche) n'apparaissent qu'une fois le S entièrement dessiné
+  if (!introLocked || ficheOf()) endIntro(); else setTimeout(endIntro, IRIS.intro.grow + IRIS.intro.shift * IRIS.intro.reveal)
   // retour sur Contact : tout de suite, puis une fois la mise en page stabilisée
   if (backTo) { const go = () => { const el = document.getElementById(backTo); if (!el) return; const y = el.getBoundingClientRect().top + scrollY - innerHeight * 0.15; if (lenis) lenis.scrollTo(y, { immediate: true, force: true }); else scrollTo(0, y) }; go(); setTimeout(go, 300) }
 }))

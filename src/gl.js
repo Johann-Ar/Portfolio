@@ -19,6 +19,8 @@ import { S_AXIS } from './monogram-path.js'
 // (0 = en haut, sens horaire, y vers le bas). fwidth vient de OES_standard_derivatives (repli : 1 px).
 const IRIS_GLSL = `#ifndef GL_OES_standard_derivatives
 #define fwidth(x) (1.0)
+#define dFdx(x) (0.0)
+#define dFdy(x) (0.0)
 #endif
 ${KIT_IRIS}
 vec3 irisAt(float t) { float a = t * 6.2831853; return irisColor(vec2(sin(a), -cos(a))); }`
@@ -53,6 +55,7 @@ uniform float uReveal;  // 0 : points absents, 1 : trame complète
 uniform float uFade;    // fondu des bords haut et bas
 uniform float uHasMask;
 uniform sampler2D uMaskB;  // champ de distance signée du monogramme
+uniform sampler2D uMaskA;  // position le long du S en 16 bits (monogram-along.png : r octet fort, g octet faible)
 uniform sampler2D uMaskW;  // demi-épaisseur locale du S (monogram-width.png, unités × 255 / 80)
 uniform vec2 uWidthK;      // contraste d'épaisseur du S : coefficient − 1 (0 : tel quel), demi-épaisseur moyenne (unités)
 uniform vec2 uCanvas;      // taille de la toile (px écran)
@@ -70,7 +73,8 @@ uniform float uColor;   // 1 : points de la couleur de l'image (dégradé « En 
 uniform vec4 uScr;      // coin haut gauche de la vue à l'écran (px), taille de l'écran (px)
 uniform float uTime;
 uniform vec4 uMarkXf;   // accueil : monogramme, centre (px), hauteur (px), rotation (rad)
-uniform vec4 uTip;      // apparition du S : bout du tracé (unités), front (0 à 1 le long du tracé), longueur du tracé (unités)
+uniform vec4 uTip;      // apparition du S : point de l'axe au front (unités), front (position le long du tracé), longueur du tracé
+uniform vec2 uTipT;     // tangente de l'axe au front (unitaire ; nulle : carte de position pas encore chargée)
 uniform vec4 uEye;      // renflement du S au survol : centre (unités du monogramme), ampleur (unités), rayon (unités)
 uniform vec3 uInk;      // encre du thème (S du monogramme)
 uniform float uEdgeFloor; // opacité au ras des bords latéraux de la piste (0 en clair : effacement complet)
@@ -131,23 +135,26 @@ vec4 halftoneS(vec2 p, vec2 off) {
     // bord poussé : petits crans). Au-delà, le champ large (canal B, ±64 unités)
     if (abs(shift) > 0.02) {
       float sdF;
-      if (sdS >= 27.9) sdF = dc.b * 128.0 - 64.0;
+      if (sdS > 20.0) sdF = mix(sdS, dc.b * 128.0 - 64.0, smoothstep(20.0, 27.5, sdS));   // loin dedans : fondu vers le champ large (R plafonne à 28)
       else if (uWidthK.y > 0.0 && wc.g < 0.995) sdF = sdS >= 0.0 ? sdS : -wc.g * wc.g * 64.0;   // dehors : le seul champ G (pas de fondu entre deux champs de pentes différentes : il plissait le bord)
       else sdF = sdS > -3.9 ? sdS : dc.b * 128.0 - 64.0;
       sdS = sdF + shift;
     }
     // apparition du S (uReveal < 1, après la croissance du « o ») : le tracé pousse de son extrémité du haut vers celle du
-    // bas en suivant son axe (position le long du tracé : canal B de la carte d'épaisseur, sdf.mjs) ; son bout est arrondi
-    // comme les extrémités du S (demi-disque de la demi-épaisseur locale, centré sur l'axe au front, uTip.xy), sans
-    // renflement, raccordé au tracé par une union douce
-    if (uReveal < 1.0 && uWidthK.y > 0.0) {
-      float cut = (uTip.z - wc.b) * uTip.w;                  // distance (unités) au front, le long du tracé
-      float body = min(sdS, cut);
-      float hl = wc.r * 80.0;
-      float rb = hl * smoothstep(0.0, 0.06, uReveal) * (1.0 - smoothstep(0.86, 1.0, uReveal));
-      float ballF = rb - length(lp - uTip.xy);
-      float kk = (0.2 * hl + 1.0) * clamp(rb / max(hl, 1.0), 0.0, 1.0) + 0.001, hh = max(kk - abs(body - ballF), 0.0) / kk;
-      sdS = max(body, ballF) + hh * hh * kk * 0.25;         // union douce (pas d'arête entre la boule et le tracé)
+    // bas en suivant son axe (position le long du tracé en 16 bits : monogram-along.png, sdf.mjs). Le S est coupé au
+    // front (a : distance au front le long du tracé, positive derrière) par une intersection arrondie : les deux coins
+    // de la coupe prennent le rayon de la demi-épaisseur locale, le bout devient un demi-disque, sans col ni bosse et
+    // jamais plus large que le trait. Le front part d'avant le haut du S et finit après son bas
+    if (uReveal < 1.0 && uWidthK.y > 0.0 && dot(uTipT, uTipT) > 0.5) {
+      vec2 al = texture2D(uMaskA, muv).rg;
+      float a = (uTip.z - ((al.r * 65280.0 + al.g * 255.0) / 65535.0 * 1.2 - 0.1)) * uTip.w;
+      // près du front, la coupe est la droite perpendiculaire à l'axe au point du front (uTip.xy, tangente uTipT) : une vraie
+      // distance, exacte et droite ; plus loin le long du tracé (autres boucles du S qui passeraient près de cette droite),
+      // la position le long du tracé seule. Fondu entre les deux là où elles coïncident (au voisinage du front, dans le trait)
+      float hw0 = wc.r * 80.0, ap = dot(lp - uTip.xy, uTipT);
+      a = mix(a, -ap, smoothstep(2.4 * hw0 + 10.0, 1.4 * hw0 + 4.0, abs(a)));
+      float r = clamp(0.9 * (wc.r * 80.0 + uWidthK.x * (wc.r * 80.0 - uWidthK.y)), 2.0, 60.0);
+      sdS = max(r, min(sdS, a)) - length(max(vec2(r - sdS, r - a), 0.0));
       shift = 1.0;                                           // anticrénelage selon la pente réelle (plus bas)
     }
     bool isO = sdO > sdS;
@@ -486,7 +493,7 @@ export function createGL(canvas, { reduced }) {
   gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer())
   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW)
   const aLoc = gl.getAttribLocation(prog, 'a'); gl.enableVertexAttribArray(aLoc); gl.vertexAttribPointer(aLoc, 2, gl.FLOAT, false, 0, 0)
-  const U = {}; for (const n of ['uTex', 'uMask', 'uRes', 'uOrigin', 'uImg', 'uPos', 'uDpr', 'uCell', 'uReveal', 'uFade', 'uHasMask', 'uFloor', 'uRadius', 'uLens', 'uLensO', 'uSoft', 'uGlass', 'uEye', 'uMarkXf', 'uBg', 'uMaskB', 'uCanvas', 'uClip', 'uCardBg', 'uColor', 'uScr', 'uTime', 'uText', 'uHasText', 'uMono', 'uInk', 'uEdgeFloor', 'uFlow', 'uHal', 'uMaskW', 'uWidthK', 'uTip']) U[n] = gl.getUniformLocation(prog, n)
+  const U = {}; for (const n of ['uTex', 'uMask', 'uRes', 'uOrigin', 'uImg', 'uPos', 'uDpr', 'uCell', 'uReveal', 'uFade', 'uHasMask', 'uFloor', 'uRadius', 'uLens', 'uLensO', 'uSoft', 'uGlass', 'uEye', 'uMarkXf', 'uBg', 'uMaskB', 'uCanvas', 'uClip', 'uCardBg', 'uColor', 'uScr', 'uTime', 'uText', 'uHasText', 'uMono', 'uInk', 'uEdgeFloor', 'uFlow', 'uHal', 'uMaskW', 'uWidthK', 'uTip', 'uMaskA', 'uTipT']) U[n] = gl.getUniformLocation(prog, n)
   gl.uniform1i(U.uTex, 0); gl.uniform1i(U.uMask, 1); gl.uniform1i(U.uText, 3); gl.uniform1i(U.uMaskB, 5)
   gl.uniform1f(U.uHal, FX.halation)
   gl.uniform4f(U.uMono, MONO_W, MONO_O[0], MONO_O[1], 0)
@@ -495,7 +502,7 @@ export function createGL(canvas, { reduced }) {
   gl.activeTexture(gl.TEXTURE6); gl.bindTexture(gl.TEXTURE_2D, flowTex)
   gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, FLOW.size, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, FLOW.lut)
   for (const [k, v] of [[gl.TEXTURE_MIN_FILTER, gl.LINEAR], [gl.TEXTURE_MAG_FILTER, gl.LINEAR], [gl.TEXTURE_WRAP_S, gl.REPEAT], [gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE]]) gl.texParameteri(gl.TEXTURE_2D, k, v)
-  gl.uniform1i(U.uFlow, 6); gl.uniform1i(U.uMaskW, 7)
+  gl.uniform1i(U.uFlow, 6); gl.uniform1i(U.uMaskW, 7); gl.uniform1i(U.uMaskA, 4)
   gl.activeTexture(gl.TEXTURE0)
   gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA)
   gl.enable(gl.SCISSOR_TEST)
@@ -628,8 +635,10 @@ export function createGL(canvas, { reduced }) {
   // gardé côté CPU : distance du curseur au S (renflement au survol)
   // boule automatique : la boule du survol, menée le long de l'axe du S (monogram-path.js) de son extrémité du haut à
   // celle du bas ; une deuxième boule part dès que la première est arrivée (elle s'efface vite en bas), puis une pause, en boucle. Le curseur reprend
-  // la main dès qu'il approche du S. Durées en ms
-  const TRACE = { pass: 900, gap: -80, pause: 6500, delay: 1400 }
+  // la main dès qu'il approche du S. Rythme d'un cœur au repos (70 bpm : « boum » à 0, « boum » à 0,35 du cycle, repos
+  // jusqu'au suivant), ralenti 2,7 fois pour que chaque passage reste lisible ; repos allongé (cœur plus calme) : cycle
+  // de 3,12 s. Durées en ms
+  const TRACE = { pass: 900, gap: -80, pause: 1400, delay: 3500 }
   const AXL = [0]; for (let i = 1; i < S_AXIS.length; i++) AXL.push(AXL[i - 1] + Math.hypot(S_AXIS[i][0] - S_AXIS[i - 1][0], S_AXIS[i][1] - S_AXIS[i - 1][1]))
   const axisAt = (u) => {   // point de l'axe à la fraction u de sa longueur
     const L = Math.min(1, Math.max(0, u)) * AXL[AXL.length - 1]; let i = 1
@@ -637,14 +646,17 @@ export function createGL(canvas, { reduced }) {
     const k = (L - AXL[i - 1]) / (AXL[i] - AXL[i - 1] || 1), a = S_AXIS[i - 1], b = S_AXIS[i]
     return [a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k]
   }
-  // point de l'axe à la position u le long du tracé (même mesure que le canal B de la carte d'épaisseur : S_AXIS en a
-  // 120 points régulièrement espacés selon elle) ; front de l'apparition du S selon son avancement
-  const axisAlong = (u) => {
-    const t = Math.min(S_AXIS.length - 1, Math.max(0, u * S_AXIS.length - 0.5)), i = Math.min(S_AXIS.length - 2, t | 0), k = t - i
-    return [S_AXIS[i][0] + (S_AXIS[i + 1][0] - S_AXIS[i][0]) * k, S_AXIS[i][1] + (S_AXIS[i + 1][1] - S_AXIS[i][1]) * k]
+  // front de l'apparition du S (position le long du tracé) selon son avancement
+  // point de l'axe et tangente à la position f le long du tracé (fraction de sa longueur ; au-delà des bouts, le
+  // prolongement des segments extrêmes, comme la carte de position : sdf.mjs)
+  const tipAt = (f) => {
+    const L = f * AXL[AXL.length - 1]; let i = 1
+    while (i < AXL.length - 1 && AXL[i] < L) i++
+    const a = S_AXIS[i - 1], b = S_AXIS[i], sl = AXL[i] - AXL[i - 1] || 1, k = (L - AXL[i - 1]) / sl
+    return [a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k, (b[0] - a[0]) / sl, (b[1] - a[1]) / sl]
   }
-  const revealFront = (r) => Math.min(1.02, Math.max(0, (r - 0.03) / 0.8))
-  let traceT0 = null, tracePass = 0
+  const revealFront = (r) => -0.09 + 1.18 * r   // avant le haut du S → après son bas (le bout rond naît et sort en entier)
+  let traceT0 = null, tracePass = 0, heroPT = -1e9, heroPL = 0
   let sdfB = null, widthRef = 50   // demi-épaisseur moyenne du S (unités), recalculée au chargement de la carte
   const sdS = (x, y) => {
     if (!sdfB) return -64
@@ -693,15 +705,27 @@ export function createGL(canvas, { reduced }) {
     })
     const wUrl = new URL('monogram-width.png', markSrc); wUrl.search = markSrc.search
     iw.src = wUrl.href
+    // position le long du S en 16 bits (apparition du S)
+    const ia = new Image()
+    let aDone; const aReady = new Promise((r) => { aDone = r; ia.onerror = r })
+    ia.addEventListener('load', () => {
+      const t = newTex()
+      gl.pixelStorei(gl.UNPACK_COLORSPACE_CONVERSION_WEBGL, gl.NONE)
+      upload(t, ia)
+      gl.pixelStorei(gl.UNPACK_COLORSPACE_CONVERSION_WEBGL, gl.BROWSER_DEFAULT_WEBGL)
+      v.maskA = t; aDone()
+    })
+    const aUrl = new URL('monogram-along.png', markSrc); aUrl.search = markSrc.search
+    ia.src = aUrl.href
     // logo prêt quand les deux cartes le sont : il apparaît d'emblée avec son épaisseur de base (LOGO_TUNE), sans saut
-    v.maskReady = Promise.all([v.maskReady, wReady])
+    v.maskReady = Promise.all([v.maskReady, wReady, aReady])
     return v.maskReady
   }
   /** Placement du monogramme. Arrivée (ms depuis la fin du chargeur) : le « o » prend exactement la place de l'anneau
    *  du chargeur (rayon handoffR, centre de la fenêtre), à la vitesse où celui-ci grandissait, et continue de grandir sur
    *  place en ralentissant ; puis, seulement quand le S apparaît, le monogramme glisse jusqu'à sa position.
    *  Ensuite le défilement p le ramène à sa place dans la composition (au-dessus du nom). Renvoie aussi l'apparition du S. */
-  const GROW = IRIS.intro.grow, SHIFT = IRIS.intro.shift, REVEAL_K = 1.6   // apparition du S : 1,6 × le glissement
+  const GROW = IRIS.intro.grow, SHIFT = IRIS.intro.shift, REVEAL_K = IRIS.intro.reveal   // apparition du S : 1,6 × le glissement
   function markXf(w, h, p, ms, slot, oc, dock) {
     const k = (a, b) => Math.min(1, Math.max(0, (p - a) / (b - a))), e = (x) => 1 - Math.pow(1 - x, 3)
     const io = (x) => (x <= 0 ? 0 : x >= 1 ? 1 : x < 0.5 ? 4 * x * x * x : 1 - Math.pow(2 - 2 * x, 3) / 2)
@@ -969,7 +993,14 @@ export function createGL(canvas, { reduced }) {
         // survol du S : position du curseur en unités du monogramme ; la balle n'agit que sur le tracé ou tout près
         // (distance au S : carte lue une fois sur le CPU) ; sur le « o », seul son effet de couleur joue
         { const u = xf[2] / 1000; let tx = (ptr.x - b.left - xf[0]) / u + MONO_W / 2, ty = (ptr.y - b.top - xf[1]) / u + 500
-          const hov = hoverDevice && !ptr.touch && !reduced && !FLOW.hoverTarget && xf[4] >= 1 && sdS(tx, ty) > -BULGE_R * 0.5
+          // réduction au défilement (le gros logo rejoint sa place au-dessus du nom, markXf) : tant que la scène avance, la
+          // boule parcourt le S au rythme de la réduction (même avancée q que markXf : du haut du S en grand au bas du S
+          // posé ; en remontant, elle repart vers le haut). Elle prend le pas sur le survol (curseur resté sur le logo
+          // pendant qu'on fait défiler à la molette) et sur le battement, qui reprend après son délai
+          if (Math.abs(p - heroPL) > 1e-5) { heroPT = now; heroPL = p }
+          const sq = 1 - Math.pow(1 - Math.min(1, Math.max(0, p / 0.54)), 3)
+          const scrollBall = !reduced && xf[4] >= 1 && !!v.maskW && sq > 0.003 && sq < 0.997 && now - heroPT < 350
+          const hov = !scrollBall && hoverDevice && !ptr.touch && !reduced && !FLOW.hoverTarget && xf[4] >= 1 && sdS(tx, ty) > -BULGE_R * 0.5
           // boule automatique (hors survol) : position le long de l'axe, vitesse douce (départ et arrivée ralentis)
           let auto = false, ending = false
           if (!reduced && xf[4] >= 1 && v.maskW) {
@@ -986,6 +1017,10 @@ export function createGL(canvas, { reduced }) {
               tx = ax; ty = ay; auto = k < 0.82; ending = !auto
             }
             tracePass = hov ? 0 : pass
+            if (scrollBall) {
+              traceT0 = Math.max(traceT0, now + TRACE.delay); tracePass = 0
+              ;[tx, ty] = axisAt(sq); auto = true; ending = false
+            }
           }
           const near = hov || auto
           if (bulge.a < 0.01) { bulge.x = tx; bulge.y = ty }   // nouvelle entrée : la balle part du curseur
@@ -1052,6 +1087,7 @@ export function createGL(canvas, { reduced }) {
       gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, v.mask || v.tex)
       if (v.maskB) { gl.activeTexture(gl.TEXTURE5); gl.bindTexture(gl.TEXTURE_2D, v.maskB) }
       if (v.maskW) { gl.activeTexture(gl.TEXTURE7); gl.bindTexture(gl.TEXTURE_2D, v.maskW) }
+      if (v.maskA) { gl.activeTexture(gl.TEXTURE4); gl.bindTexture(gl.TEXTURE_2D, v.maskA) }
       gl.uniform2f(U.uCanvas, canvas.width, canvas.height)
       gl.uniform2f(U.uRes, w, h); gl.uniform2f(U.uOrigin, x0, y0); gl.uniform2f(U.uImg, v.img[0], v.img[1]); gl.uniform2f(U.uPos, v.pos[0], v.pos[1])
       gl.uniform1f(U.uEdgeFloor, theme.bg[0] + theme.bg[1] + theme.bg[2] > 1.5 ? 1 : 0.12)   // clair : pas d'effacement (flou CSS aux bords)
@@ -1074,7 +1110,7 @@ export function createGL(canvas, { reduced }) {
       if (v.mark) {
         gl.uniform3f(U.uInk, ...theme.ink)
         gl.uniform4f(U.uMarkXf, xf[0], xf[1], xf[2], xf[3]); gl.uniform1f(U.uReveal, xf[4])   // le S apparaît pendant le glissement
-        { const f = revealFront(xf[4]), [tx, ty] = axisAlong(f); gl.uniform4f(U.uTip, tx, ty, f, AXL[AXL.length - 1]) }
+        { const f = revealFront(xf[4]), [px, py, tx, ty] = tipAt(f); gl.uniform4f(U.uTip, px, py, f, AXL[AXL.length - 1]); gl.uniform2f(U.uTipT, v.maskA ? tx : 0, v.maskA ? ty : 0) }
         // ampleur en cloche douce (montée et retombée sans à-coup)
         gl.uniform4f(U.uEye, bulge.x, bulge.y, BULGE_A * bulge.a * bulge.a * (3 - 2 * bulge.a), BULGE_R)
         gl.uniform2f(U.uWidthK, v.maskW ? LOGO_TUNE.contrast - 1 : 0, v.maskW ? widthRef : 0)   // y = 0 : carte pas encore chargée

@@ -8,5 +8,6 @@ export const IRIS = {
   intro: {
     grow: 850,         // croissance du « o » après le relais du chargeur (600 à 1200 ms)
     shift: 850,        // glissement du monogramme pendant l'apparition du S (600 à 1200 ms)
+    reveal: 1.6,       // apparition du S : durée en glissements (elle continue après la fin du glissement)
   },
 }
