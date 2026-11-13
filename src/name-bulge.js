@@ -3,7 +3,8 @@
  * épaissit les lettres sous elle, comme une balle qui passe dans un collant. Le dessin est fait par le filtre .bal-rf
  * du SVG (logotype-svg.js) : on n'y règle que la région du filtre et la place de la bosse (autour de la balle), et son
  * ampleur (k3). Nom de l'accueil (une fois entièrement net, .bal-net) et du pied de page ; seulement à la souris, hors
- * animations réduites.
+ * animations réduites. La bosse ne naît que si le curseur lui-même touche une lettre (pas seulement s'il passe près :
+ * sinon elle déformait des lettres qu'on ne touchait pas) ; sa taille et son dessin, eux, ne changent pas.
  */
 const R_BASE = 78          // rayon de la bosse (unités du dessin ; hauteur des lettres : 344)
 const R_MIN_PX = 13   // petit nom (pied de page) : la bosse garde au moins ce rayon à l'écran, sinon elle ne se voit pas
@@ -15,7 +16,15 @@ export function initNameBulge(svgs) {
   const items = svgs.map((el) => ({
     el, layer: el.querySelector('.bal-r'), f: el.querySelector('.bal-rf'), img: el.querySelector('.bal-ri'), k: el.querySelector('.bal-rk'),
     x: 0, y: 0, a: 0, shown: false,
+    // lettres du mot (géométrie seule, pour savoir si le curseur en touche une) et leur décalage (nom empilé : ARATA
+    // est dans un groupe déplacé sous JOHANN)
+    paths: [...el.querySelectorAll('[id^="bal-l-"] path')].map((pa) => {
+      const g = pa.parentElement.closest('g[transform]'), m = g?.transform.baseVal.consolidate()?.matrix
+      return [pa, m ? m.e : 0, m ? m.f : 0]
+    }),
+    pt: el.createSVGPoint(),
   })).filter((it) => it.layer && it.f && it.img && it.k)
+  const onInk = (it, x, y) => it.paths.some(([pa, dx, dy]) => { it.pt.x = x - dx; it.pt.y = y - dy; return pa.isPointInFill(it.pt) })
   if (!items.length) return
   let px = -1e9, py = -1e9, raf = 0, last = 0
   const follow = (a, b, tau, dt) => a + (b - a) * (1 - Math.exp(-dt / tau))
@@ -33,7 +42,7 @@ export function initNameBulge(svgs) {
       let tx = it.x, ty = it.y, near = false
       if (on && px > r.left - 40 && px < r.right + 40 && py > r.top - 40 && py < r.bottom + 40) {
         const p = new DOMPoint(px, py).matrixTransform(it.el.getScreenCTM().inverse())
-        tx = p.x; ty = p.y; near = true
+        if (onInk(it, p.x, p.y)) { tx = p.x; ty = p.y; near = true }
       }
       if (it.a < 0.01 && near) { it.x = tx; it.y = ty }   // nouvelle entrée : la balle part du curseur
       it.x = follow(it.x, tx, 0.07, dt); it.y = follow(it.y, ty, 0.07, dt)

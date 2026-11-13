@@ -58,7 +58,9 @@ const renfDefs = (u) => `<filter id="bal-rf-${u}" class="bal-rf" filterUnits="us
   + `<feComposite class="bal-rk" in="b" in2="i" operator="arithmetic" k1="0" k2="1" k3="0" k4="0" result="s"/>`
   + `<feComponentTransfer in="s" result="t"><feFuncA type="linear" slope="60" intercept="-36.7"/></feComponentTransfer>`
   + `<feFlood flood-color="currentColor"/><feComposite in2="t" operator="in"/></filter>`
-const renfCouche = (u) => `<g class="bal-r" filter="url(#bal-rf-${u})" style="display:none"><use href="#bal-l-${u}"/></g>`
+// avec balayage : la couche passe sous le masque de la copie nette (bal-m2) ; quand le nom s'efface au défilement, elle
+// s'efface avec lui (sinon le morceau du mot pris dans la région du filtre restait affiché seul)
+const renfCouche = (u, masque = false) => `<g class="bal-r" filter="url(#bal-rf-${u})" style="display:none"${masque ? ` mask="url(#bal-m2-${u})"` : ''}><use href="#bal-l-${u}"/></g>`
 
 let compteur = 0
 // numérotation des id internes : remise à zéro au début de chaque page (render.js), pour que les pages FR et EN aient
@@ -102,5 +104,5 @@ export function logotypeSvg({ mot = 'holosene', className = '', id = '', decorat
     : `<use href="#bal-l-${u}"/>`) + '</g>'
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${x - M} ${y - M} ${w + 2 * M} ${h + 2 * M}" class="${classes} logotype--balayage"${id ? ` id="${id}"` : ''} ${a11y}`
     + ` data-bande="${BAL.bande}" data-retenue="${BAL.retenue}" style="--m:${(M / w).toFixed(5)}">`
-    + `${titre}<defs>${defs}</defs>${couche(0)}${couche(1)}${couche(2)}${renflement ? renfCouche(u) : ''}</svg>`
+    + `${titre}<defs>${defs}</defs>${couche(0)}${couche(1)}${couche(2)}${renflement ? renfCouche(u, true) : ''}</svg>`
 }
