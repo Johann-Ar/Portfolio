@@ -638,7 +638,7 @@ export function createGL(canvas, { reduced }) {
   // puis le repos (name : durée minimale d'une vague dans le cycle). Durées en ms
   const TRACE = { pass: 900, gap: -80, nameAt: 0.6, name: 1000, pause: 1400, delay: 3500 }
   { const n1 = TRACE.nameAt * TRACE.pass, n2 = TRACE.pass + TRACE.gap + n1
-    setNameRhythm({ n1, n2, name: TRACE.name, pause: TRACE.pause, delay: 1200 }) }   // le nom seul (S rangé) : même rythme
+    setNameRhythm({ n1, n2, name: TRACE.name, pause: TRACE.pause, delay: 400 }) }   // le nom seul (S rangé) : même rythme
   const AXL = [0]; for (let i = 1; i < S_AXIS.length; i++) AXL.push(AXL[i - 1] + Math.hypot(S_AXIS[i][0] - S_AXIS[i - 1][0], S_AXIS[i][1] - S_AXIS[i - 1][1]))
   const axisAt = (u) => {   // point de l'axe à la fraction u de sa longueur
     const L = Math.min(1, Math.max(0, u)) * AXL[AXL.length - 1]; let i = 1
@@ -656,7 +656,7 @@ export function createGL(canvas, { reduced }) {
     return [a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k, (b[0] - a[0]) / sl, (b[1] - a[1]) / sl]
   }
   const revealFront = (r) => -0.09 + 1.18 * r   // avant le haut du S → après son bas (le bout rond naît et sort en entier)
-  let traceT0 = null, tracePass = 0, heroPT = -1e9, heroPL = 0, sbOn = false, sbFade = false
+  let traceT0 = null, cycA = 0, cycL = 0, tracePass = 0, heroPT = -1e9, heroPL = 0, sbOn = false, sbFade = false
   const ss01 = (x) => { x = Math.min(1, Math.max(0, x)); return x * x * (3 - 2 * x) }
   let sdfB = null, widthRef = 50   // demi-épaisseur moyenne du S (unités), recalculée au chargement de la carte
   const sdS = (x, y) => {
@@ -1010,7 +1010,12 @@ export function createGL(canvas, { reduced }) {
             // deuxième boule : elle part un peu avant l'arrivée de la première (gap < 0), qui s'efface vite en bas ; vagues
             // du nom : n1 et n2, pendant la course de chaque boule du S
             const s2 = TRACE.pass + TRACE.gap, n1 = TRACE.nameAt * TRACE.pass, n2 = s2 + n1
-            const tc = now - traceT0, cyc = n2 + Math.max(TRACE.name, nameHeartDur()) + TRACE.pause, m = tc < 0 ? -1 : tc % cyc
+            // cycle : sa longueur (selon la course des boules du nom) est fixée à son début, pour que les vagues ne sautent
+            // pas quand la taille du nom ou du S change
+            const tc = now - traceT0, cycOf = () => n2 + Math.max(TRACE.name, nameHeartDur()) + TRACE.pause
+            if (tc < 0) cycL = 0
+            else { if (!cycL) { cycA = 0; cycL = cycOf() } while (tc - cycA >= cycL) { cycA += cycL; cycL = cycOf() } }
+            const m = tc < 0 ? -1 : tc - cycA
             const pass = m < 0 ? 0 : m >= s2 && m < s2 + TRACE.pass ? 2 : m < TRACE.pass ? 1 : 0
             const k = pass === 2 ? (m - s2) / TRACE.pass : pass === 1 ? m / TRACE.pass : -1
             if (!hov && k >= 0) {
@@ -1021,14 +1026,13 @@ export function createGL(canvas, { reduced }) {
             }
             tracePass = hov ? 0 : pass
             // battement du nom (accueil et pied de page) : ses deux vagues, chacune à la suite d'une boule du S
-            // (temps depuis le départ de chaque vague, et vitesse moyenne de la boule du S, px/ms)
-            const wave = (n0) => !scrollBall && m >= n0 ? m - n0 : -1
-            setNameHeart(wave(n1), wave(n2), AXL[AXL.length - 1] * xf[2] / 1000 / TRACE.pass)
+            // (moment du cycle, sa longueur, et vitesse moyenne de la boule du S, px/ms)
+            setNameHeart(scrollBall ? -1 : m, cycL, AXL[AXL.length - 1] * xf[2] / 1000 / TRACE.pass)
             if (scrollBall) {
               traceT0 = Math.max(traceT0, now + TRACE.delay); tracePass = 0
               ;[tx, ty] = axisAt(sq); auto = true; ending = false
             }
-          } else setNameHeart(-1, -1)
+          } else setNameHeart(-1, 0)
           const near = hov || auto
           // début du défilement : une boule déjà là (survol, battement) s'éteint d'abord sur place, sans glisser vers sa
           // nouvelle place ; la boule du défilement naît ensuite là où elle doit être dans le S

@@ -698,7 +698,7 @@ html.brand-fade .fiche-brand { transition: opacity 0.4s var(--ease-flow), visibi
    canvas posé dessus ; le nom ne bouge pas. Le dessin a une marge (--m, part de sa largeur) : la largeur et les marges
    négatives la compensent, le mot occupe exactement la place --w. */
 .hero__word .hero__name.logotype--balayage { width: calc(var(--w) * (1 + 2 * var(--m))); margin: calc(var(--w) * -1 * var(--m)); }
-.tr-on > .bal-net-use, .logotype--balayage:not(.bal-net) .bal-r { visibility: hidden; }   /* tracé en cours : le canvas à la place du nom */
+.tr-on > .bal-net-use, .logotype--balayage:not(.bal-net):not(.tr-on) .bal-r { visibility: hidden; }   /* tracé en cours : le canvas à la place du nom (le battement passe dessus, sur la partie tracée) */
 .hero__word .hero__name.studio__word--line { --w: min(84vw, 1560px); }
 @media (max-width: 760px) { .hero__word .hero__name.studio__word--stack { --w: min(80vw, 420px); } }
 /* pied de page : « © … » en bas à gauche, JOHANN ARATA (logotype vectorisé du pack) au centre, tracé comme celui de
