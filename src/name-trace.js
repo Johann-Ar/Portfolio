@@ -135,13 +135,16 @@ export function nameTrace(svg, mapUrl) {
     svg._front = front   // avancée du tracé (unités de la carte) : le battement ne passe que sur la partie tracée (name-bulge.js)
     gl.uniform1f(U.uFront, front)
     balls.forEach((b, i) => {
-      const k = (front - b.t[0]) / (b.t[1] - b.t[0]), on = k > 0 && k < 1
-      const e = on ? k : 0   // même vitesse que le front dans les lettres
+      // arrivée : la boule reste posée jusqu'à ce que l'encre l'ait recouverte (sinon une image sans rien, puis un bloc)
+      const k = (front - b.t[0]) / (b.t[1] - b.t[0]), on = k > 0 && front < b.t[1] + 2 * b.to[2]
+      const e = on ? Math.min(1, k) : 0   // même vitesse que le front dans les lettres
       gl.uniform4f(U[`uB${i}`], b.from[0] + (b.to[0] - b.from[0]) * e, b.from[1] + (b.to[1] - b.from[1]) * e, b.from[2] + (b.to[2] - b.from[2]) * e, on ? 1 : 0)
     })
     gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT)
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4)
   }
+  // audit (dev) : pixels du canvas, relus juste après draw
+  if (import.meta.env.DEV) api._read = () => { const d = new Uint8Array(cv.width * cv.height * 4); gl.readPixels(0, 0, cv.width, cv.height, gl.RGBA, gl.UNSIGNED_BYTE, d); return { d, w: cv.width, h: cv.height } }
   /** Tracé en cours : le canvas à la place du SVG. */
   api.show = (on) => {
     if (on === api.shown) return

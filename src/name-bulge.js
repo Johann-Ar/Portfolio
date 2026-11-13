@@ -105,7 +105,7 @@ export function initNameBulge(svgs, mapUrl) {
       ? [along(NAME_TRACE.paths.johann), along(NAME_TRACE.paths.arata.map(([x, y], i) => st && i > 0 ? [x + st[0], y + st[1]] : [x, y]))]
       : null
     return {
-      el, balls, heart, st,
+      el, balls, heart, st, waves: [{ s0: -1e9, dur: [1, 1] }, { s0: -1e9, dur: [1, 1] }],
       // lettres du mot (géométrie seule, pour savoir si le curseur en touche une) et leur décalage (nom empilé : ARATA
       // est dans un groupe déplacé sous JOHANN)
       paths: [...el.querySelectorAll('[id^="bal-l-"] path')].map((pa) => {
@@ -115,6 +115,7 @@ export function initNameBulge(svgs, mapUrl) {
       pt: el.createSVGPoint(),
     }
   }).filter((it) => it.balls.length)
+  if (import.meta.env.DEV) window.__bulge = items   // audit (scratch) : avancée des boules du battement image par image
   if (!items.length) return
   const onInk = (it, x, y) => it.paths.some(([pa, dx, dy]) => { it.pt.x = x - dx; it.pt.y = y - dy; return pa.isPointInFill(it.pt) })
   let px = -1e9, py = -1e9, raf = 0, last = 0
@@ -173,17 +174,32 @@ export function initNameBulge(svgs, mapUrl) {
         if (m >= 0) ht = [rhythm.n1, rhythm.n2].map((n) => m >= n ? m - n : -1)
         busy = true
       }
-      if (!near && dur && ht.some((t) => t >= 0 && t < heartDur)) {
+      // vague en cours : son départ et sa durée sont ceux fixés quand elle est partie. Les horloges du S et du nom se
+      // recalent parfois de quelques dizaines de ms : la même vague continue (seul un écart d'au moins 40 % de sa course
+      // en fait une nouvelle), sinon la boule repartait en arrière
+      const same = (t, w) => Math.abs(it.waves[w].s0 - (now - t)) < 0.4 * Math.max(...it.waves[w].dur)
+      const runs = (t, w) => t >= 0 && (same(t, w) ? now - it.waves[w].s0 < Math.max(...it.waves[w].dur) : t < heartDur)
+      if (!near && dur && ht.some(runs)) {
         // battement : chaque vague, deux boules du centre vers les deux bouts (départ et arrivée ralentis, comme celles
         // du S) ; leur ampleur monte au départ et retombe avant l'arrivée ; vague finie : ses boules s'éteignent
         const gate = whole ? null : gateOf(it)
         ht.forEach((t, w) => {
+          // durée fixée au départ de la vague : la vitesse du S (sa taille) change pendant le défilement, et la recalculer
+          // à chaque image faisait avancer la boule par à-coups, voire reculer
+          const wv = it.waves[w]
+          if (t >= 0 && !same(t, w)) { wv.s0 = now - t; wv.dur = dur.slice() }
+          if (t >= 0) t = now - wv.s0
           for (let i = 0; i < 2; i++) {
-            const b = it.balls[2 * w + i], k = t < 0 ? -1 : t / dur[i]
+            const b = it.balls[2 * w + i], k = t < 0 ? -1 : t / wv.dur[i]
             const f = 0.5 - 0.5 * Math.cos(Math.PI * Math.min(1, Math.max(0, k)))
             let amp = k < 0 || k >= 1 ? 0 : ss(k / 0.12) * (1 - ss((k - 0.8) / 0.18))
-            if (gate) amp *= ss((front - gate[i][Math.round(f * (G - 1))]) / 250)   // tracé en cours : seulement là où tout est tracé
-            ;[b.x, b.y] = it.heart[i](f); b.a = amp; place(it, b)
+            // tracé en cours : seulement là où tout est tracé. Ce facteur suit sa cible en douceur : la limite « déjà tracé »
+            // fait des bonds le long du chemin, et un défilement rapide avance le front d'un coup (la boule surgissait ou
+            // s'éteignait en une image) ; au départ d'une vague, il part directement de sa valeur
+            const gt = gate ? ss((front - gate[i][Math.round(f * (G - 1))]) / 250) : 1
+            b.g = b.g == null || t < 40 ? gt : follow(b.g, gt, 0.09, dt)
+            amp *= b.g
+            ;[b.x, b.y] = it.heart[i](f); b.a = amp; b.prog = k; place(it, b)
           }
         })
         busy = true

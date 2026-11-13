@@ -134,17 +134,46 @@ for (let q = 0; q < w * h; q++) {
   }
 }
 for (let i = 0; i < w * h; i++) if (ink[i] && A[i] === Infinity) A[i] = T[i]
+// sans saut : un disque reçoit un seul moment ; isolé (goutte, arrivée du saut sur le H), il apparaîtrait d'un bloc. On
+// garde le bout rond mais avec une pente minimale qui suit l'avancée le long du trait (T) : TILT de l'écart, et jamais
+// plus de LAG en avance sur T
+const TILT = 0.55, LAG = 8
+for (let i = 0; i < w * h; i++) if (ink[i] && T[i] < Infinity && A[i] < Infinity) A[i] = Math.max(A[i] + TILT * (T[i] - A[i]), T[i] - LAG)
+// lissage léger (moyenne des voisins dans les lettres) : plus de points isolés qui apparaîtraient avant leurs voisins
+for (let n = 0; n < 3; n++) {
+  const B = A.slice()
+  for (let i = w; i < w * h - w; i++) {
+    if (!ink[i] || B[i] === Infinity) continue
+    let s = B[i], c = 1; for (const k of [i + 1, i - 1, i + w, i - w]) if (ink[k] && B[k] < Infinity) { s += B[k]; c++ }
+    A[i] = s / c
+  }
+}
+// pente minimale : un pixel n'apparaît qu'après un voisin déjà apparu, et au moins SLOPE unités plus tard par unité de
+// distance. Plus de creux (point allumé avant ses voisins) ni de plateau (zone allumée d'un coup, ex. crochet au bout
+// d'une queue, que le disque du trait voisin rendait presque constant) : le front y va au plus 1 / SLOPE fois plus vite
+const SLOPE = 0.6, Am = new Float64Array(w * h).fill(Infinity)
+for (const q of [seedN, seedA, topH]) { Am[q] = A[q]; push(q, A[q]) }
+while (heap.length) {
+  const [t, i] = pop(); if (t > Am[i]) continue
+  const x = i % w, y = i / w | 0
+  for (const [dx, dy, c] of NB) { const k = (y + dy) * w + x + dx; if (!ink[k] || A[k] === Infinity) continue; const u = Math.max(A[k], t + SLOPE * c); if (u < Am[k]) { Am[k] = u; push(k, u) } }
+}
+for (let i = 0; i < w * h; i++) if (ink[i] && Am[i] < Infinity) A[i] = Am[i]
 // hors des lettres : prolongement (4 px) pour la lecture bilinéaire
 for (let n = 0; n < 4; n++) { const B = A.slice(); for (let i = w; i < w * h - w; i++) if (B[i] === Infinity) { let m = Infinity; for (const k of [i + 1, i - 1, i + w, i - w]) m = Math.min(m, B[k]); A[i] = m } }
 let AMAX = 0, DMAX = 0; for (let i = 0; i < w * h; i++) { if (ink[i] && A[i] > AMAX) AMAX = A[i]; if (ink[i]) DMAX = Math.max(DMAX, D[i]) }
 
 // carte à demi-résolution (2 unités par px : le moment d'apparition varie doucement ; le bord des lettres, lui, vient
 // du dessin vectoriel) : moyenne des valeurs connues de chaque bloc de 2 × 2
-const w2 = w / 2, h2 = h / 2, rgba = new Uint8ClampedArray(w2 * h2 * 4)
+const w2 = w / 2, h2 = h / 2, rgba = new Uint8ClampedArray(w2 * h2 * 4), V = new Float64Array(w2 * h2).fill(Infinity)
+const blk = (y, x) => [2 * y * w + 2 * x, 2 * y * w + 2 * x + 1, (2 * y + 1) * w + 2 * x, (2 * y + 1) * w + 2 * x + 1]
 for (let y = 0; y < h2; y++) for (let x = 0; x < w2; x++) {
-  let s = 0, n = 0; for (const k of [2 * y * w + 2 * x, 2 * y * w + 2 * x + 1, (2 * y + 1) * w + 2 * x, (2 * y + 1) * w + 2 * x + 1]) if (A[k] !== Infinity) { s += A[k]; n++ }
-  const v = n ? Math.min(65534, Math.round(s / n / AMAX * 65534)) : 65535, i = y * w2 + x
-  rgba[i * 4] = v >> 8; rgba[i * 4 + 1] = v & 255; rgba[i * 4 + 2] = 0; rgba[i * 4 + 3] = 255
+  let s = 0, n = 0; for (const k of blk(y, x)) { if (A[k] !== Infinity) { s += A[k]; n++ } }
+  if (n) V[y * w2 + x] = s / n
+}
+for (let c = 0; c < w2 * h2; c++) {
+  const v = V[c] < Infinity ? Math.min(65534, Math.round(V[c] / AMAX * 65534)) : 65535
+  rgba[c * 4] = v >> 8; rgba[c * 4 + 1] = v & 255; rgba[c * 4 + 2] = 0; rgba[c * 4 + 3] = 255
 }
 const png = await p.evaluate(async ({ px, w, h }) => {
   const c = new OffscreenCanvas(w, h); c.getContext('2d').putImageData(new ImageData(new Uint8ClampedArray(px), w, h), 0, 0)

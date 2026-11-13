@@ -523,6 +523,7 @@ const wordsSvg = [...document.querySelectorAll('.hero .studio__word')]
 // tracé ; avant et après, le SVG (rien, ou le nom entier). Sans WebGL (ou carte pas encore prête) : simple fondu du SVG
 const nameMap = (() => { const s = document.querySelector('.brand__mark')?.src; if (!s) return ''; const u = new URL('name-along.png', s); u.search = new URL(s).search; return u.href })()
 const sweeps = wordsSvg.filter((w) => w.classList.contains('logotype--balayage')).map((el) => ({ el, last: -1, tr: reduced || !nameMap ? null : nameTrace(el, nameMap) }))
+if (import.meta.env.DEV) window.__sweeps = sweeps   // audit (scratch) : piloter le tracé image par image
 initNameBulge([...sweeps.map((sw) => sw.el), ...document.querySelectorAll('.foot__logo.logotype--balayage, .logotype--renfle')], nameMap)   // renflement du nom au survol (name-bulge.js)
 // pied de page : le même tracé, joué dans le temps quand le nom arrive entier à l'écran ; effacé quand on remonte (le
 // nom repasse sous le bas de l'écran), rejoué au retour
@@ -548,6 +549,7 @@ initNameBulge([...sweeps.map((sw) => sw.el), ...document.querySelectorAll('.foot
     }
   } }
 function sweep(draw) {
+  if (import.meta.env.DEV && window.__freeze) return   // audit : tracé piloté à la main
   const a = Math.round((1 - draw) * 1000) / 1000
   for (const sw of sweeps) {
     const ready = !!sw.tr?.ready
