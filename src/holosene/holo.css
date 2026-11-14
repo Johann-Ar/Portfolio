@@ -1,6 +1,5 @@
-/* holosene.fr : le logotype en grand, au centre de l'écran ; une ligne et un lien en dessous */
+/* holosene.fr : le logotype en grand, au centre de l'écran ; un lien en dessous */
 .holo { min-height: 100svh; }
-.holo .bg-canvas { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; }
 .holo__main {
   position: relative; z-index: 1; min-height: 100svh; box-sizing: border-box;
   display: grid; justify-items: center; align-content: center; gap: clamp(14px, 2.6vh, 28px);
@@ -10,7 +9,6 @@
 .holo__title .logotype { width: 100%; }
 /* lettrage à l'encre (ink-word.js) : la toile déborde du mot (renflement) ; le SVG reste en place, transparent */
 .holo__ink { position: absolute; left: -2%; top: -6%; width: 104%; height: 112%; pointer-events: none; }
-.holo__title.ink-on .logotype { opacity: 0; }
-.holo__line { margin: 0; font: 400 clamp(14px, 1.6vw, 18px)/1.4 var(--font-text); color: var(--ink-64); text-align: center; }
+.holo__title.ink-on .logotype, .holo__title.ink-wait .logotype { opacity: 0; }   /* rien avant l'encre : pas d'image intermédiaire */
 .holo__link { font: 600 clamp(13px, 1.4vw, 15px)/1 var(--font-text); letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink); text-decoration: none; padding: 10px 4px; }
 .holo__link:hover, .holo__link:focus-visible { text-decoration: underline; text-underline-offset: 4px; }
