@@ -17,6 +17,8 @@ const [, , W, H] = svg.match(/viewBox="([^"]+)"/)[1].split(/\s+/).map(Number)   
 const M = 40, w = W + 2 * M, h = H + 2 * M   // marge de la carte (unités = px)
 // repères (unités du dessin) : centre de départ entre N et A, goutte du A de JOHANN, haut droit du H
 const GOUTTE = [808, 90], HAUT_H = [770, 28]
+// départ des deux boules du battement : pointe ronde en haut à droite du second N
+const POINTE_N = [1547, 40]
 
 const b = await chromium.launch(process.argv[2] ? { executablePath: process.argv[2] } : {})
 const p = await b.newPage()
@@ -98,9 +100,10 @@ if (unreached > 50) throw new Error(`${unreached} px du nom jamais atteints`)
 // goutte du A au haut du H). Le trait qu'il parcourt (disques inscrits le long du chemin) garde la vitesse de la boule
 // principale ; ailleurs (impasses, traits qui croisent), la boule secondaire part de son embranchement à vitesse réduite
 const SLOW = 2   // les boules secondaires vont SLOW fois moins vite
-const paths = {}, tube = new Uint8Array(w * h)
+const paths = {}, ends = {}, tube = new Uint8Array(w * h)
 for (const [name, inA] of [['johann', false], ['arata', true]]) {
   let end = -1; for (let i = 0; i < w * h; i++) if (ink[i] && T[i] < Infinity && (lab[i] === cARATA.i) === inA && (end < 0 || T[i] > T[end])) end = i
+  ends[name] = end
   const chain = []; for (let i = end; i >= 0; i = par[i]) chain.push(i)
   chain.reverse()
   for (const q of chain) {
@@ -115,6 +118,39 @@ for (const [name, inA] of [['johann', false], ['arata', true]]) {
     if (j === 0 || acc >= 12 || jumpEnd || prev === drop || j === chain.length - 1) { pts.push(xy(q)); acc = 0 }
   })
   paths[name] = pts
+}
+// battement (name-bulge.js) : les deux boules partent de la pointe du second N. Côté JOHANN : chemin le plus court dans
+// les lettres jusqu'au même bout (avec le saut goutte du A → haut du H) ; côté ARATA : saut de la pointe au point
+// d'ARATA le plus proche, puis le chemin le plus court dans ARATA jusqu'à son bout
+const tipN = ridgeNear(POINTE_N, cANN, 30)
+const simplify = (chain, start) => {
+  const pts = [start]; let acc = 0
+  chain.forEach((q, j) => {
+    const prev = chain[j - 1], jump = prev === drop && q === topH
+    acc += prev == null ? 0 : dist(xy(prev), xy(q))
+    if (acc >= 12 || jump || prev === drop || j === chain.length - 1) { pts.push(xy(q)); acc = 0 }
+  })
+  return pts
+}
+// chemin le plus court dans les lettres d'un point à un autre (avec le saut goutte du A → haut du H)
+const geodesic = (from, to) => {
+  const G = new Float64Array(w * h).fill(Infinity), pr = new Int32Array(w * h).fill(-1)
+  G[from] = 0; push(from, 0)
+  while (heap.length) {
+    const [t, i] = pop(); if (t > G[i]) continue
+    if (i === drop) { const L = dist(xy(drop), xy(topH)); if (t + L < G[topH]) { G[topH] = t + L; pr[topH] = drop; push(topH, t + L) } }
+    const x = i % w, y = i / w | 0
+    for (const [dx, dy, c] of NB) { const k = (y + dy) * w + x + dx; if (ink[k] && t + c < G[k]) { G[k] = t + c; pr[k] = i; push(k, t + c) } }
+  }
+  if (G[to] === Infinity) throw new Error('chemin du battement impossible')
+  const chain = []; for (let i = to; i >= 0; i = pr[i]) chain.push(i)
+  return chain.reverse()
+}
+// côté ARATA : saut de la pointe au point d'ARATA le plus proche, puis les lettres jusqu'au bout d'ARATA
+const landA = ridgeNear(xy(nearest(xy(tipN), cARATA)), cARATA, 26)
+const heart = {
+  johann: simplify(geodesic(tipN, ends.johann).slice(1), xy(tipN)),
+  arata: simplify(geodesic(landA, ends.arata), xy(tipN)),
 }
 const anc = new Int32Array(w * h).fill(-1)
 for (const i of order) anc[i] = tube[i] || par[i] < 0 ? i : anc[par[i]]
@@ -192,8 +228,8 @@ const data = {
     { from: [...C, 0.35 * D[seedA]], to: [...xy(seedA), D[seedA]], t: [0, t0A], arata: true },
     { from: [...xy(drop), D[drop]], to: [...xy(topH), D[topH]], t: [jump.t0, jump.t0 + jump.L], arata: false },
   ].map((o) => ({ ...o, from: o.from.map(r1), to: o.to.map(r1), t: o.t.map(r1) })),
-  // chemins principaux (unités du dessin), du centre de départ au bout de JOHANN et d'ARATA (battement, name-bulge.js)
-  paths: { johann: paths.johann.map((p) => p.map(r1)), arata: paths.arata.map((p) => p.map(r1)) },
+  // chemins du battement (unités du dessin, name-bulge.js) : de la pointe du second N au bout de JOHANN et d'ARATA
+  paths: { johann: heart.johann.map((p) => p.map(r1)), arata: heart.arata.map((p) => p.map(r1)) },
 }
 writeFileSync(new URL('../../src/name-trace-data.js', import.meta.url),
   `// généré par brand/tools/name-trace.mjs : apparition tracée de JOHANN ARATA (carte public/media/name-along.png)\nexport const NAME_TRACE = ${JSON.stringify(data)}\n`)
