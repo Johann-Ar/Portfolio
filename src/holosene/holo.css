@@ -7,7 +7,11 @@
   padding: clamp(20px, 5vh, 56px) 16px;
 }
 .holo__title { margin: 0; width: min(92vw, 980px); color: var(--ink); }
+.holo__title { position: relative; }
 .holo__title .logotype { width: 100%; }
+/* lettrage à l'encre (ink-word.js) : la toile déborde du mot (renflement) ; le SVG reste en place, transparent */
+.holo__ink { position: absolute; inset: -6% -2%; width: 104%; height: 112%; pointer-events: none; }
+.holo__title.ink-on .logotype { opacity: 0; }
 .holo__o { position: relative; width: min(80vw, 62svh, 640px); aspect-ratio: 1; color: var(--ink); }
 .holo__ring { display: block; width: 100%; height: 100%; cursor: pointer; touch-action: manipulation; }
 /* sans WebGL 2 : la roue du kit (anneau 0,514), fixe */
