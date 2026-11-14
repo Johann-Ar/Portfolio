@@ -71,6 +71,18 @@ function irisCss() {
   }
 }
 
+/** holosene.fr (page d'attente) : logotype HOLOSENE du pack, inline (renflement au survol, logotype-svg.js). */
+function holoPage() {
+  return {
+    name: 'holo-page',
+    async transformIndexHtml(html) {
+      if (!html.includes('<!--HOLO-LOGO-->')) return html
+      const { logotypeSvg } = await import(`${pathToFileURL(resolve('src/logotype-svg.js')).href}?t=${Date.now()}`)
+      return html.replace('<!--HOLO-LOGO-->', logotypeSvg({ mot: 'holosene', className: 'holo__logo', renflement: true }))
+    },
+  }
+}
+
 /** Toutes les pages : couleur de la barre du navigateur (fonds du logo-kit, selon le mode de l'appareil), dans <head>. */
 function themeHead() {
   return {
@@ -131,7 +143,7 @@ function csp() {
     name: 'csp',
     apply: 'build',
     closeBundle() {
-      for (const page of ['index.html', 'en/index.html', 'mentions-legales.html', '404.html']) {
+      for (const page of ['index.html', 'en/index.html', 'mentions-legales.html', '404.html', 'holosene/index.html']) {
         const f = resolve(join('dist', page))
         if (!existsSync(f)) continue
         let html = readFileSync(f, 'utf8')
@@ -152,11 +164,11 @@ function csp() {
 
 export default defineConfig({
   base: './',
-  plugins: [prerender(), irisCss(), themeHead(), absolute404(), seoFiles(), csp()],
+  plugins: [prerender(), holoPage(), irisCss(), themeHead(), absolute404(), seoFiles(), csp()],
   build: {
     target: 'es2022',
     rollupOptions: {
-      input: { fr: resolve('index.html'), en: resolve('en/index.html'), legal: resolve('mentions-legales.html'), notfound: resolve('404.html') },
+      input: { fr: resolve('index.html'), en: resolve('en/index.html'), legal: resolve('mentions-legales.html'), notfound: resolve('404.html'), holosene: resolve('holosene/index.html') },
     },
   },
 })

@@ -1,0 +1,21 @@
+/* holosene.fr : tout tient dans l'écran, centré ; le grand O au milieu, le logotype au-dessus */
+.holo { min-height: 100svh; }
+.holo .bg-canvas { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; }
+.holo__main {
+  position: relative; z-index: 1; min-height: 100svh; box-sizing: border-box;
+  display: grid; justify-items: center; align-content: center; gap: clamp(14px, 2.6vh, 28px);
+  padding: clamp(20px, 5vh, 56px) 16px;
+}
+.holo__title { margin: 0; width: min(92vw, 980px); color: var(--ink); }
+.holo__title .logotype { width: 100%; }
+.holo__o { position: relative; width: min(80vw, 62svh, 640px); aspect-ratio: 1; color: var(--ink); }
+.holo__ring { display: block; width: 100%; height: 100%; cursor: pointer; touch-action: manipulation; }
+/* sans WebGL 2 : la roue du kit (anneau 0,514), fixe */
+.holo__o--css .holo__ring { display: none; }
+.holo__o--css::before {
+  content: ''; position: absolute; inset: 4%; border-radius: 50%; background: conic-gradient(from 180deg, var(--iris-stops, #22E0D8, #3C94FE, #5C5FFE, #BE43FE, #FD29E9, #FD35A5, #FE7130, #EBC31D, #7DE63B, #38E954, #22E0D8));
+  -webkit-mask: radial-gradient(circle, transparent 51.4%, #000 calc(51.4% + 1px)); mask: radial-gradient(circle, transparent 51.4%, #000 calc(51.4% + 1px));
+}
+.holo__line { margin: 0; font: 400 clamp(14px, 1.6vw, 17px)/1.4 var(--font-text); color: var(--ink-64); text-align: center; }
+.holo__link { font: 600 clamp(13px, 1.4vw, 15px)/1 var(--font-text); letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink); text-decoration: none; padding: 10px 4px; }
+.holo__link:hover, .holo__link:focus-visible { text-decoration: underline; text-underline-offset: 4px; }
