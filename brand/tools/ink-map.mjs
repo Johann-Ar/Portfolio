@@ -13,7 +13,7 @@ const svg = readFileSync(new URL(`../../public/logotypes/svg/${mot}.svg`, import
 const VB = svg.match(/viewBox="([^"]+)"/)[1].split(/\s+/).map(Number)
 const glass = readFileSync(new URL('../../src/glass.js', import.meta.url), 'utf8')
 const edt = glass.slice(glass.indexOf('export function insideDistance')).replace('export ', '')
-const M = 40, RES = 0.5, K = 4, TMAX = 48
+const M = 40, RES = 1, K = 3, TMAX = 48
 
 const b = await chromium.launch()
 const p = await b.newPage()

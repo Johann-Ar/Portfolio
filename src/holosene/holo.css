@@ -10,5 +10,7 @@
 /* lettrage à l'encre (ink-word.js) : la toile déborde du mot (renflement) ; le SVG reste en place, transparent */
 .holo__ink { position: absolute; left: -2%; top: -6%; width: 104%; height: 112%; pointer-events: none; }
 .holo__title.ink-on .logotype, .holo__title.ink-wait .logotype { opacity: 0; }   /* rien avant l'encre : pas d'image intermédiaire */
-.holo__link { font: 600 clamp(13px, 1.4vw, 15px)/1 var(--font-text); letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink); text-decoration: none; padding: 10px 4px; }
+.holo__link { transition: opacity 0.7s ease, transform 0.7s cubic-bezier(0.2, 0.7, 0.2, 1); font: 600 clamp(13px, 1.4vw, 15px)/1 var(--font-text); letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink); text-decoration: none; padding: 10px 4px; }
 .holo__link:hover, .holo__link:focus-visible { text-decoration: underline; text-underline-offset: 4px; }
+.trace-wait .holo__link { opacity: 0; transform: translateY(6px); pointer-events: none; }   /* après le tracé du mot */
+@media (prefers-reduced-motion: reduce) { .holo__link { transition: none; } .trace-wait .holo__link { transform: none; } }
