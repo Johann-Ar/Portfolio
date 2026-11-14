@@ -5,14 +5,14 @@
 // partir des cartes du kit (public/media/monogram-sdf.png et monogram-width.png, brand/tools/sdf.mjs) : contour du S
 // déplacé de (contraste − 1) × (demi-épaisseur locale − demi-épaisseur moyenne), contraste LOGO_CONTRAST_BASE ; « o »
 // tel quel. Le résultat est une image blanche (alpha anticrénelé) dans un SVG dont le viewBox est en unités « encre »
-// (F unité par unité du monogramme de 1000 de haut) : les outils ink-map / ink-trace / ink-bake la lisent comme un
+// (F unité par unité du monogramme de 1000 de haut ; data-frame : coin du cadre en unités du monogramme, F ; tracé : mono-trace.mjs) : les outils ink-map / ink-trace / ink-bake la lisent comme un
 // logotype du pack.
 import { chromium } from 'playwright'
 import { readFileSync, writeFileSync } from 'node:fs'
-import { LOGO_CONTRAST_BASE } from '../../src/logo-tune.js'
-import { S_AXIS } from '../../src/monogram-path.js'
 
-const F = 0.4, R = 3, PAD = 6   // unités « encre » par unité du monogramme, px par unité « encre », marge (unités du monogramme)
+// contraste d'épaisseur de holosene.fr : plus marqué que celui de l'accueil (LOGO_CONTRAST_BASE), choix de Johann
+const CONTRAST = 1.6
+const F = 0.2, R = 6, PAD = 6   // unités « encre » par unité du monogramme, px par unité « encre », marge (unités du monogramme)
 const b64 = (f) => 'data:image/png;base64,' + readFileSync(new URL(`../../public/media/${f}`, import.meta.url)).toString('base64')
 
 const b = await chromium.launch()
@@ -64,13 +64,11 @@ const out = await p.evaluate(async ({ sdf, wid, K, F, R, PAD }) => {
   const buf = new Uint8Array(await (await c.convertToBlob({ type: 'image/png' })).arrayBuffer())
   let bin = ''; for (let i = 0; i < buf.length; i += 0x8000) bin += String.fromCharCode(...buf.subarray(i, i + 0x8000))
   return { png: btoa(bin), vw, vh, w, h, x0, y0, ref }
-}, { sdf: b64('monogram-sdf.png'), wid: b64('monogram-width.png'), K: LOGO_CONTRAST_BASE, F, R, PAD })
+}, { sdf: b64('monogram-sdf.png'), wid: b64('monogram-width.png'), K: CONTRAST, F, R, PAD })
 await b.close()
 const r2 = (v) => Math.round(v * 100) / 100
-// départ du tracé (ink-trace.mjs) : le bout du haut du S, comme l'apparition de l'accueil ; chaque morceau est tracé jusqu'au bout
-const start = [(S_AXIS[0][0] - out.x0) * F, (S_AXIS[0][1] - out.y0) * F].map(r2)
-const svg = `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 ${r2(out.vw)} ${r2(out.vh)}" data-start="${start.join(' ')}" data-exit="last">` +
-  `<!-- généré par brand/tools/mono-shape.mjs : gros logo de l'accueil (contraste ${LOGO_CONTRAST_BASE}), cadre (${out.x0}, ${out.y0}) unités du monogramme × ${F} -->` +
+const svg = `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 ${r2(out.vw)} ${r2(out.vh)}" data-frame="${out.x0} ${out.y0} ${F}">` +
+  `<!-- généré par brand/tools/mono-shape.mjs : gros logo de l'accueil (contraste ${CONTRAST}), cadre (${out.x0}, ${out.y0}) unités du monogramme × ${F} -->` +
   `<g class="mot"><image width="${r2(out.vw)}" height="${r2(out.vh)}" preserveAspectRatio="none" href="data:image/png;base64,${out.png}" xlink:href="data:image/png;base64,${out.png}"/></g></svg>\n`
 writeFileSync(new URL('../../src/holosene/monogram-shape.svg', import.meta.url), svg)
 console.log(`monogram-shape.svg ${r2(out.vw)} × ${r2(out.vh)} unités (${out.w} × ${out.h} px), demi-épaisseur moyenne ${out.ref.toFixed(1)}`)

@@ -1,22 +1,25 @@
-/* holosene.fr : le monogramme, le logotype en grand au centre de l'écran, un lien en dessous ; pied de page du portfolio */
-.holo { min-height: 100svh; display: grid; grid-template-rows: 1fr auto; }
+/* holosene.fr : le logotype en grand, exactement au centre de l'écran ; le logo S·o au-dessus, un lien en dessous ;
+   pied de page du portfolio, posé en bas (il ne décale pas le centre) */
+.holo { position: relative; min-height: 100svh; }
 .holo__main {
-  position: relative; z-index: 1; box-sizing: border-box;
-  display: grid; justify-items: center; align-content: center; gap: clamp(14px, 2.6vh, 28px);
-  padding: clamp(20px, 5vh, 56px) 16px;
+  position: relative; z-index: 1; box-sizing: border-box; min-height: 100svh;
+  display: grid; grid-template-rows: 1fr auto 1fr; justify-items: center;
+  padding: clamp(72px, 12vh, 120px) 16px;   /* mêmes marges en haut et en bas : le mot au centre exact */
 }
-.holo__title { position: relative; margin: 0 0 clamp(8px, 3vh, 40px); width: min(90vw, 1640px); color: var(--ink); }
+.holo__main > .holo__mono { align-self: end; }
+.holo__main > .holo__link { align-self: start; margin-top: clamp(14px, 4vh, 48px); }
+.holo__title { position: relative; margin: 0; width: min(90vw, 1640px); color: var(--ink); }
 .holo__title .logotype { width: 100%; }
 /* lettrage à l'encre (ink-word.js) : la toile déborde du mot (renflement) ; le SVG reste en place, transparent */
 .holo__ink { position: absolute; left: -2%; top: -6%; width: 104%; height: 112%; pointer-events: none; }
 .holo__title.ink-on .logotype, .holo__title.ink-wait .logotype { opacity: 0; }   /* rien avant l'encre : pas d'image intermédiaire */
 .holo__late { transition: opacity 0.7s ease, transform 0.7s cubic-bezier(0.2, 0.7, 0.2, 1); }
-/* monogramme du kit, blanc (#FFFFFF, même blanc que l'encre du mot) */
-/* gros logo S·o de l'accueil, à l'encre (ink-word.js) ; son image (forme exacte, blanche) sert de cadre et de repli */
-.holo__mono { position: relative; height: clamp(130px, 27vh, 290px); aspect-ratio: 320 / 401; margin-bottom: clamp(0px, 1vh, 12px); color: var(--ink); }
-.holo__mono img { display: block; width: 100%; height: 100%; }
+/* gros logo S·o de l'accueil, à l'encre (ink-word.js) ; son image (forme exacte) sert de cadre et de repli */
+.holo__mono { position: relative; height: clamp(65px, 13.5vh, 145px); margin-bottom: clamp(28px, 6vh, 72px); color: var(--ink); }
+.holo__mono img { display: block; height: 100%; width: auto; }
+:root[data-theme="light"] .holo__mono img { filter: brightness(0) opacity(0.88); }   /* repli sans encre : #1E1E1E environ */
 .holo__mono.ink-on img, .holo__mono.ink-wait img { opacity: 0; }
-.holo__foot { width: 100%; box-sizing: border-box; }
+.holo__foot { position: absolute; left: 0; right: 0; bottom: 0; z-index: 1; width: 100%; box-sizing: border-box; }
 /* pied de page du portfolio : © à gauche, contact au centre (à la place du nom), mentions légales à droite */
 @media (min-width: 761px) { .holo__foot > a.holo__mail { grid-column: 2; grid-row: 1; justify-self: center; } }
 .holo__link { font: 600 clamp(13px, 1.4vw, 15px)/1 var(--font-text); letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink); text-decoration: none; padding: 10px 4px; }

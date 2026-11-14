@@ -25,7 +25,7 @@ import { TRACE as mTrace } from './monogram-trace.js'
 // elle-même (monogram-shape.svg : forme assez fine pour être réduite)
 export const INK_ART = {
   holosene: { map: hMap, along: hAlong, bake: hBake, trace: hTrace, dur: 1500, shape: (svg) => svg.querySelector('.mot').outerHTML },
-  monogram: { map: mMap, along: mAlong, bake: mBake, trace: mTrace, dur: 1000 },
+  monogram: { map: mMap, along: mAlong, bake: mBake, trace: mTrace, dur: 1000, bakeS: 3 },
 }
 const M = 40, RES = 1, BAKE_S = 1.5
 
@@ -44,7 +44,7 @@ uniform vec2 uVB;
 uniform float uSeed;
 uniform vec3 uInk;
 uniform highp sampler2D uAlong;   // apparition tracée : moment où chaque point apparaît (holosene-along.png)
-uniform float uAmax, uFront;      // moment le plus tardif, avancée du front (≥ 1e8 : mot entier)
+uniform float uAmax, uFront, uAK;   // uAK : px de la carte par unité      // moment le plus tardif, avancée du front (≥ 1e8 : mot entier)
 uniform sampler2D uBake;  // densité de l'encre (holosene-bake.webp)
 uniform vec2 uBakeK;     // conversion unités → coordonnées de la carte de densité
 uniform vec4 uB[4];      // boules qui traversent le vide pendant le tracé : centre, rayon (unités), présence
@@ -60,7 +60,7 @@ float fbm(vec2 p) { float s = 0.0, a = 0.5; for (int i = 0; i < 4; i++) { s += a
 // moment d'apparition (unités de chemin) : 16 bits en R et V, interpolé à la main (précision)
 float at(ivec2 ij) { vec2 c = texelFetch(uAlong, clamp(ij, ivec2(0), textureSize(uAlong, 0) - 1), 0).rg; return c.r * 65280.0 + c.g * 255.0; }
 float along(vec2 u) {
-  vec2 q = (u + uM) * 0.5 - 0.5, f = fract(q); ivec2 i = ivec2(floor(q));
+  vec2 q = (u + uM) * uAK - 0.5, f = fract(q); ivec2 i = ivec2(floor(q));
   return mix(mix(at(i), at(i + ivec2(1, 0)), f.x), mix(at(i + ivec2(0, 1)), at(i + ivec2(1)), f.x), f.y) / 65534.0 * uAmax;
 }
 
@@ -130,10 +130,10 @@ export function createInkWord(svg, { art = INK_ART.holosene, wait = false, reduc
   gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer())
   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW)
   gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0)
-  const U = {}; for (const n of ['uRes', 'uBox', 'uMapK', 'uM', 'uMap', 'uSeed', 'uInk', 'uMask', 'uVB', 'uAlong', 'uAmax', 'uFront', 'uB', 'uBake', 'uBakeK']) U[n] = gl.getUniformLocation(prog, n)
+  const U = {}; for (const n of ['uRes', 'uBox', 'uMapK', 'uM', 'uMap', 'uSeed', 'uInk', 'uMask', 'uVB', 'uAlong', 'uAmax', 'uFront', 'uB', 'uBake', 'uBakeK', 'uAK']) U[n] = gl.getUniformLocation(prog, n)
   gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA)
   gl.uniform1i(U.uMap, 0); gl.uniform1i(U.uMask, 1); gl.uniform1i(U.uAlong, 2); gl.uniform1i(U.uBake, 3)
-  gl.uniform2f(U.uVB, ...MAP.VB); gl.uniform1f(U.uM, MAP.M); gl.uniform1f(U.uSeed, Math.random()); gl.uniform1f(U.uAmax, TRACE.amax)
+  gl.uniform2f(U.uVB, ...MAP.VB); gl.uniform1f(U.uM, MAP.M); gl.uniform1f(U.uSeed, Math.random()); gl.uniform1f(U.uAmax, TRACE.amax); gl.uniform1f(U.uAK, TRACE.map.k)
   const texParams = (f) => {
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, f); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, f)
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
@@ -163,7 +163,7 @@ export function createInkWord(svg, { art = INK_ART.holosene, wait = false, reduc
   Promise.all([load(MAP.url), load(art.along), load(art.bake), makeMask()]).then(([img, alongImg, bakeImg]) => {
     gl.activeTexture(gl.TEXTURE3); gl.bindTexture(gl.TEXTURE_2D, gl.createTexture())
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, bakeImg); texParams(gl.LINEAR)
-    gl.uniform2f(U.uBakeK, BAKE_S / bakeImg.naturalWidth, BAKE_S / bakeImg.naturalHeight)
+    gl.uniform2f(U.uBakeK, (art.bakeS || BAKE_S) / bakeImg.naturalWidth, (art.bakeS || BAKE_S) / bakeImg.naturalHeight)
     gl.activeTexture(gl.TEXTURE2); gl.bindTexture(gl.TEXTURE_2D, gl.createTexture())
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, alongImg); texParams(gl.NEAREST)
     gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, gl.createTexture())

@@ -20,7 +20,9 @@ const mot = process.argv[2] || 'holosene'
 const svg = readFileSync(new URL(mot === 'monogram' ? '../../src/holosene/monogram-shape.svg' : `../../public/logotypes/svg/${mot}.svg`, import.meta.url), 'utf8').replace(/currentColor/g, '#000')
 const inkPng = readFileSync(new URL(`../../src/holosene/${mot}-ink.png`, import.meta.url)).toString('base64')
 const VB = svg.match(/viewBox="([^"]+)"/)[1].split(/\s+/).map(Number)
-const P = { S: 1.5, M: 40, SEED: 7, ITER: 150 }
+// logo S·o (traits fins à l'échelle du dessin) : simulé sur une trame 2 fois plus fine, épaisseurs comptées double (TK),
+// pour la même encre dense que celle des pleins du mot ; ink-word.js lit sa carte à S px par unité
+const P = mot === 'monogram' ? { S: 3, TK: 2, M: 40, SEED: 7, ITER: 150 } : { S: 1.5, TK: 1, M: 40, SEED: 7, ITER: 150 }
 
 const b = await chromium.launch()
 const pg = await b.newPage()
@@ -77,8 +79,8 @@ const out = await pg.evaluate(async ({ svg, inkPng, VB, P }) => {
     const sd = samp(u, v, 0) * 48 - 8
     if (sd > -7) band.push(i)
     if (cov[i] <= 0) continue
-    const T = Math.max(0.5, samp(u, v, 1) * 48), thick = Math.min(1, Math.max(0, (T / 21 - 0.15) / 0.65))
-    const acr = Math.min(1, Math.max(0, sd / T))
+    const T = Math.max(0.5, samp(u, v, 1) * 48 * P.TK), thick = Math.min(1, Math.max(0, (T / 21 - 0.15) / 0.65))
+    const acr = Math.min(1, Math.max(0, sd * P.TK / T))
     let load = (0.72 + 0.28 * thick) * (0.82 + 0.36 * fbm(u * 0.012 + 3, v * 0.012))
     // pinceau qui se vide dans les déliés : stries parallèles au trait (lignes d'égale distance au bord), interrompues
     const run = fbm(u * 0.02 + 9, v * 0.02)
