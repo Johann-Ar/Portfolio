@@ -184,7 +184,7 @@ export function createInkWord(svg, { reduced = false, onFail = () => {}, onTrace
   readInk(); new MutationObserver(readInk).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] })
 
   let done = false
-  const DUR = 2600, DELAY = 200   // tracé : durée (ms) et petit temps avant qu'il commence
+  const DUR = 1500, DELAY = 100   // tracé : durée (ms) et petit temps avant qu'il commence
   const ext = TRACE.amax + TRACE.dmax + 2
   const frame = (now) => {
     if (!ready) return
