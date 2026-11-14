@@ -3,11 +3,10 @@
  * tracé vectoriel du SVG de la page, rendu à la résolution de l'écran (net à toute taille). La matière de l'encre vient
  * d'une simulation physique précalculée (holosene-bake.webp, brand/tools/ink-bake.mjs) : fibres du papier, pinceau qui
  * se vide dans les déliés, carbone porté par l'eau et déposé en séchant, bord mouillé plus chargé. La carte
- * holosene-ink.png (brand/tools/ink-map.mjs : distance au bord) sert à la balle du survol.
+ * holosene-ink.png (brand/tools/ink-map.mjs : distance au bord) délimite le calcul.
  * Apparition, une seule fois au chargement : le mot se trace tout seul, comme le nom du portfolio (une boule parcourt
  * les lettres, le trait naît derrière elle avec un bout rond ; carte holosene-along.png, brand/tools/ink-trace.mjs).
- * Ensuite, image fixe. Curseur : une balle passe dans le mot comme dans un collant. Elle n'existe que quand le curseur
- * touche une lettre, se pose sur l'axe du trait et l'élargit localement ; rien dans le vide entre les lettres.
+ * Ensuite, image fixe : aucun effet au survol.
  * Le SVG du logotype reste dans la page (lecteurs d'écran, repli sans WebGL 2) ; il est seulement rendu transparent.
  */
 import mapUrl from './holosene-ink.png?url'
@@ -32,7 +31,6 @@ uniform sampler2D uMask;  // tracé vectoriel du mot rendu à la taille de l'éc
 uniform vec2 uVB;
 uniform float uSeed;
 uniform vec3 uInk;
-uniform vec4 uBall;      // balle du survol : centre (unités du dessin), rayon (unités), présence
 uniform highp sampler2D uAlong;   // apparition tracée : moment où chaque point apparaît (holosene-along.png)
 uniform float uAmax, uFront;      // moment le plus tardif, avancée du front (≥ 1e8 : mot entier)
 uniform sampler2D uBake;  // densité de l'encre (holosene-bake.webp)
@@ -47,7 +45,6 @@ float vnoise(vec2 p) {
 }
 float fbm(vec2 p) { float s = 0.0, a = 0.5; for (int i = 0; i < 4; i++) { s += a * vnoise(p); p = p * 2.03 + 17.1; a *= 0.5; } return s; }
 
-float smax(float a, float b, float k) { float h = max(k - abs(a - b), 0.0) / k; return max(a, b) + h * h * k * 0.25; }
 // moment d'apparition (unités de chemin) : 16 bits en R et V, interpolé à la main (précision)
 float at(ivec2 ij) { vec2 c = texelFetch(uAlong, clamp(ij, ivec2(0), textureSize(uAlong, 0) - 1), 0).rg; return c.r * 65280.0 + c.g * 255.0; }
 float along(vec2 u) {
@@ -55,40 +52,39 @@ float along(vec2 u) {
   return mix(mix(at(i), at(i + ivec2(1, 0)), f.x), mix(at(i + ivec2(0, 1)), at(i + ivec2(1)), f.x), f.y) / 65534.0 * uAmax;
 }
 
+// densité simulée (de 0,70 à 1 en pratique) étalée sur toute la plage : la moitié la plus chargée de l'encre atteint
+// la couleur pleine (celle du lien « Portfolio »), les zones sèches et les fibres descendent vers le fond
+float inkD(vec2 u) {
+  float r = texture(uBake, (u + uM) * uBakeK).r;
+  return pow(clamp((r - 0.70) / 0.24, 0.0, 1.0), 1.3);
+}
+
 // encre en un point de la toile (px, y vers le bas) : alpha prémultiplié
 float shade(vec2 p) {
   vec2 u = (p - uBox.xy) / uBox.z;                           // unités du dessin
   vec4 t = texture(uMap, (u + uM) * uMapK);
   float sd0 = t.r * 48.0 - 8.0;                              // distance au bord (unités, positive dedans)
-  // balle dans un collant : centrée sur l'axe du trait touché par le curseur, elle l'élargit localement (union douce
-  // du trait et d'un disque) ; rien dans le vide entre les lettres
-  float bs = uBall.z - length(u - uBall.xy);
-  float sd = uBall.w > 0.001 ? smax(sd0, bs, 12.0 * uBall.w) : sd0;
-  if (sd < -3.0) return 0.0;
+  if (sd0 < -3.0) return 0.0;
   vec2 sp = u + uSeed * 37.0;
   // contour : le tracé vectoriel exact ; à peine irrégulier (l'encre mord le papier), sans flou
   vec2 jit = (vec2(fbm(sp * 0.06), fbm(sp * 0.06 + 9.3)) - 0.5) * 0.9;
   vec2 mu = (u + jit) / uVB;
   float mask = all(greaterThanEqual(mu, vec2(0.0))) && all(lessThanEqual(mu, vec2(1.0))) ? texture(uMask, mu).a : 0.0;
-  // un seul contour : celui du tracé vectoriel (couverture convertie en distance), qui laisse la place à celui de la
-  // carte là où la balle gonfle le trait : pas de double bord
+  // contour : celui du tracé vectoriel (couverture convertie en distance)
   float aa = 0.75 / uBox.z;
   float sdv = (mask - 0.5) * 2.0 * aa;
-  float edge = mix(sdv, sd, smoothstep(0.0, 1.5, sd - sd0));
+  float edge = sdv;
   // apparition tracée : le trait existe là où le front est passé (bout rond), plus les boules qui traversent le vide
   if (uFront < 1e8) {
     edge = min(edge, uFront - along(u));
-    for (int i = 0; i < 4; i++) if (uB[i].w > 0.0) { float e = uB[i].z - length(u - uB[i].xy); edge = max(edge, e); sd = max(sd, e); }
+    for (int i = 0; i < 4; i++) if (uB[i].w > 0.0) { float e = uB[i].z - length(u - uB[i].xy); edge = max(edge, e); }
   }
   float inside = smoothstep(-aa, aa, edge);
   if (inside <= 0.002) return 0.0;
   // densité de l'encre de Chine : simulation précalculée (brand/tools/ink-bake.mjs : fibres du papier, pinceau qui se
-  // vide dans les déliés, carbone porté par l'eau et déposé en séchant, bord mouillé plus chargé). Là où la balle
-  // gonfle le trait, ou dans les boules du tracé, encre pleine
-  float d = texture(uBake, (u + uM) * uBakeK).r * 0.96;
-  // bosse : la même encre, étirée depuis le centre de la balle (le trait gonflé garde sa matière, ses fibres)
-  vec2 ub = uBall.xy + (u - uBall.xy) * 0.62;
-  d = mix(d, texture(uBake, (ub + uM) * uBakeK).r * 0.96, smoothstep(0.0, 2.5, sd - sd0));
+  // vide dans les déliés, carbone porté par l'eau et déposé en séchant, bord mouillé plus chargé). Dans les
+  // boules du tracé (vide entre deux morceaux), encre pleine
+  float d = inkD(u);
   if (uFront < 1e8) d = mix(d, 0.9, step(sd0, -0.5));       // boules du tracé dans le vide
   return clamp(d, 0.0, 1.0) * inside;
 }
@@ -103,7 +99,7 @@ void main() {
 /**
  * Monte le lettrage à l'encre sur `svg` (logotype du pack dans la page). Retourne { frame(now) } ou null sans WebGL 2 ;
  * `onFail` est appelé si les cartes ne se chargent pas (le SVG reprend alors sa place), `onTraced` quand le mot est
- * entier (fin du tracé). On ne dessine que quand quelque chose bouge (tracé, balle, taille, thème).
+ * entier (fin du tracé). On ne dessine que quand quelque chose change (tracé, taille, thème).
  */
 export function createInkWord(svg, { reduced = false, onFail = () => {}, onTraced = () => {} } = {}) {
   const host = svg.parentElement
@@ -120,7 +116,7 @@ export function createInkWord(svg, { reduced = false, onFail = () => {}, onTrace
   gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer())
   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW)
   gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0)
-  const U = {}; for (const n of ['uRes', 'uBox', 'uMapK', 'uM', 'uMap', 'uSeed', 'uInk', 'uBall', 'uMask', 'uVB', 'uAlong', 'uAmax', 'uFront', 'uB', 'uBake', 'uBakeK']) U[n] = gl.getUniformLocation(prog, n)
+  const U = {}; for (const n of ['uRes', 'uBox', 'uMapK', 'uM', 'uMap', 'uSeed', 'uInk', 'uMask', 'uVB', 'uAlong', 'uAmax', 'uFront', 'uB', 'uBake', 'uBakeK']) U[n] = gl.getUniformLocation(prog, n)
   gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA)
   gl.uniform1i(U.uMap, 0); gl.uniform1i(U.uMask, 1); gl.uniform1i(U.uAlong, 2); gl.uniform1i(U.uBake, 3)
   gl.uniform2f(U.uVB, ...MAP.VB); gl.uniform1f(U.uM, MAP.M); gl.uniform1f(U.uSeed, Math.random()); gl.uniform1f(U.uAmax, TRACE.amax)
@@ -147,7 +143,7 @@ export function createInkWord(svg, { reduced = false, onFail = () => {}, onTrace
     } finally { URL.revokeObjectURL(url) }
   }
   // cartes (épaisseur, apparition) et contour chargés avant d'afficher quoi que ce soit : jusque-là, le titre est vide
-  let ready = false, start = 0, sdMap = null, dirty = true, busy = true
+  let ready = false, start = 0, dirty = true, busy = true
   const load = (url) => { const im = new Image(); im.src = url; return im.decode().then(() => im) }
   Promise.all([load(MAP.url), load(alongUrl), load(bakeUrl), makeMask()]).then(([img, alongImg, bakeImg]) => {
     gl.activeTexture(gl.TEXTURE3); gl.bindTexture(gl.TEXTURE_2D, gl.createTexture())
@@ -158,10 +154,6 @@ export function createInkWord(svg, { reduced = false, onFail = () => {}, onTrace
     gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, gl.createTexture())
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img); texParams(gl.LINEAR)
     gl.uniform2f(U.uMapK, MAP.RES / img.naturalWidth, MAP.RES / img.naturalHeight)
-    // distance au bord lue aussi côté processeur : la balle du survol se pose sur l'axe du trait touché
-    const c2 = document.createElement('canvas'); c2.width = img.naturalWidth; c2.height = img.naturalHeight
-    const x2 = c2.getContext('2d', { willReadFrequently: true }); x2.drawImage(img, 0, 0)
-    sdMap = { w: c2.width, h: c2.height, d: x2.getImageData(0, 0, c2.width, c2.height).data }
     host.append(canvas); fit()
     host.classList.add('ink-on'); host.classList.remove('ink-wait')
     ready = true; start = performance.now()
@@ -191,58 +183,16 @@ export function createInkWord(svg, { reduced = false, onFail = () => {}, onTrace
   }
   readInk(); new MutationObserver(readInk).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] })
 
-  // distance au bord (unités, positive dedans) en un point du dessin, lue dans la carte (interpolée)
-  const sdAt = (x, y) => {
-    const X = (x + MAP.M) * MAP.RES - 0.5, Y = (y + MAP.M) * MAP.RES - 0.5, i = Math.floor(X), j = Math.floor(Y), fx = X - i, fy = Y - j
-    const v = (a, b) => (a < 0 || b < 0 || a >= sdMap.w || b >= sdMap.h ? 0 : sdMap.d[(b * sdMap.w + a) * 4]) / 255 * 48 - 8
-    return (v(i, j) * (1 - fx) + v(i + 1, j) * fx) * (1 - fy) + (v(i, j + 1) * (1 - fx) + v(i + 1, j + 1) * fx) * fy
-  }
-  // axe du trait sous un point : on remonte la distance au bord jusqu'à la crête (centre du plus grand disque inscrit)
-  const ridge = (x, y) => {
-    let s = sdAt(x, y)
-    for (let n = 0; n < 60; n++) {
-      const gx = sdAt(x + 1.5, y) - sdAt(x - 1.5, y), gy = sdAt(x, y + 1.5) - sdAt(x, y - 1.5), g = Math.hypot(gx, gy) / 3
-      if (g < 0.3) break
-      const nx = x + gx / (3 * g), ny = y + gy / (3 * g), ns = sdAt(nx, ny)
-      if (ns <= s) break
-      x = nx; y = ny; s = ns
-    }
-    return [x, y, s]
-  }
-
-  // balle du survol : elle n'existe que quand le curseur touche une lettre ; elle se pose sur l'axe du trait, glisse le
-  // long des lettres avec le curseur et disparaît dès qu'il passe dans le vide
-  const ball = { x: 0, y: 0, r: 0, on: 0, want: 0, tx: 0, ty: 0, tr: 0 }
-  let traced = reduced, done = false
-  addEventListener('pointermove', (e) => {
-    if (!ready || !traced || reduced || e.pointerType !== 'mouse') { ball.want = 0; return }
-    const r = canvas.getBoundingClientRect()
-    const ux = ((e.clientX - r.left) * dpr - box[0]) / box[2], uy = ((e.clientY - r.top) * dpr - box[1]) / box[2]
-    const s = sdAt(ux, uy)
-    // sur une lettre (à 1,5 unité près ; un peu plus large quand la bosse est déjà là, pour ne pas clignoter à son bord)
-    const on = s > (ball.want ? -1.5 - 8 * ball.on : -1.5)
-    if (!on) { ball.want = 0; return }
-    const [cx, cy, half] = ridge(ux, uy)
-    // retour sur une lettre après un passage dans le vide : la balle renaît là, elle ne traverse pas le vide
-    if (!ball.want && (ball.on < 0.05 || Math.hypot(cx - ball.x, cy - ball.y) > 2 * half)) { ball.on = 0; ball.x = cx; ball.y = cy; ball.r = half }
-    ball.want = 1; ball.tx = cx; ball.ty = cy; ball.tr = half
-  }, { passive: true })
-  document.addEventListener('pointerleave', () => { ball.want = 0 })
-
+  let done = false
   const DUR = 2600, DELAY = 200   // tracé : durée (ms) et petit temps avant qu'il commence
   const ext = TRACE.amax + TRACE.dmax + 2
-  let last = performance.now()
   const frame = (now) => {
     if (!ready) return
-    const dt = Math.min(0.1, (now - last) / 1000); last = now
-    const f = 1 - Math.exp(-dt / 0.07)
-    ball.x += (ball.tx - ball.x) * f; ball.y += (ball.ty - ball.y) * f; ball.r += (ball.tr - ball.r) * f
-    ball.on += (ball.want - ball.on) * (1 - Math.exp(-dt / (ball.want ? 0.16 : 0.12)))
     // apparition tracée, une seule fois au chargement (vitesse constante, comme une boule qui parcourt les lettres)
     const a = reduced ? 1 : Math.max(0, Math.min(1, (now - start - DELAY) / DUR))
     const front = a < 1 ? a * ext : 1e9
-    if (a >= 1 && !done) { done = true; traced = true; onTraced() }
-    const active = a < 1 || ball.want > 0 || ball.on > 0.002
+    if (a >= 1 && !done) { done = true; onTraced() }
+    const active = a < 1
     if (!active && !busy && !dirty) return
     busy = active; dirty = false
     gl.viewport(0, 0, canvas.width, canvas.height)
@@ -257,9 +207,6 @@ export function createInkWord(svg, { reduced = false, onFail = () => {}, onTrace
       bl.set([b.from[0] + (b.to[0] - b.from[0]) * e, b.from[1] + (b.to[1] - b.from[1]) * e, b.from[2] + (b.to[2] - b.from[2]) * e, on ? 1 : 0], i * 4)
     })
     gl.uniform4fv(U.uB, bl)
-    // rayon de la balle : caché dans le trait quand elle naît, puis plus large que le trait (le collant se tend)
-    const on = ball.on < 0.002 ? 0 : ball.on
-    gl.uniform4f(U.uBall, ball.x, ball.y, ball.r * 0.7 + (ball.r * 0.3 + 12) * on, on)
     gl.drawArrays(gl.TRIANGLES, 0, 3)
   }
   return { frame }
