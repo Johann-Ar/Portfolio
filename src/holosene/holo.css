@@ -12,7 +12,10 @@
 .holo__title.ink-on .logotype, .holo__title.ink-wait .logotype { opacity: 0; }   /* rien avant l'encre : pas d'image intermédiaire */
 .holo__late { transition: opacity 0.7s ease, transform 0.7s cubic-bezier(0.2, 0.7, 0.2, 1); }
 /* monogramme du kit, blanc (#FFFFFF, même blanc que l'encre du mot) */
-.holo__mono { display: block; height: clamp(44px, 8vh, 84px); width: auto; margin-bottom: clamp(4px, 2vh, 24px); }
+/* gros logo S·o de l'accueil, à l'encre (ink-word.js) ; son image (forme exacte, blanche) sert de cadre et de repli */
+.holo__mono { position: relative; height: clamp(130px, 27vh, 290px); aspect-ratio: 320 / 401; margin-bottom: clamp(0px, 1vh, 12px); color: var(--ink); }
+.holo__mono img { display: block; width: 100%; height: 100%; }
+.holo__mono.ink-on img, .holo__mono.ink-wait img { opacity: 0; }
 .holo__foot { width: 100%; box-sizing: border-box; }
 /* pied de page du portfolio : © à gauche, contact au centre (à la place du nom), mentions légales à droite */
 @media (min-width: 761px) { .holo__foot > a.holo__mail { grid-column: 2; grid-row: 1; justify-self: center; } }

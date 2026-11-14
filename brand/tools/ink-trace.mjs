@@ -12,7 +12,7 @@ import { chromium } from 'playwright'
 import { readFileSync, writeFileSync } from 'node:fs'
 
 const mot = process.argv[2] || 'holosene'
-const svg = readFileSync(new URL(`../../public/logotypes/svg/${mot}.svg`, import.meta.url), 'utf8').replace(/currentColor/g, '#000')
+const svg = readFileSync(new URL(mot === 'monogram' ? '../../src/holosene/monogram-shape.svg' : `../../public/logotypes/svg/${mot}.svg`, import.meta.url), 'utf8').replace(/currentColor/g, '#000')
 const [VX, VY, W, H] = svg.match(/viewBox="([^"]+)"/)[1].split(/\s+/).map(Number)
 const M = 40, w = W + 2 * M, h = H + 2 * M
 const SLOW = 2
@@ -74,7 +74,9 @@ const pop = () => { const top = heap[0], last = heap.pop(); if (heap.length) { h
 
 // départ : haut du premier jambage (point du premier morceau le plus en haut à gauche)
 let first = seq[0].px[0]; for (const j of seq[0].px) { const [x, y] = xy(j), [fx, fy] = xy(first); if (x + y < fx + fy) first = j }
-let entry = ridgeNear(xy(first), seq[0], 40), tEntry = 0
+// (forme qui précise son départ, data-start : ce point, en unités du dessin)
+const ds = svg.match(/data-start="([^"]+)"/), lastExit = /data-exit="last"/.test(svg)
+let entry = ds ? ridgeNear(ds[1].split(' ').map(Number), seq[0], 40) : ridgeNear(xy(first), seq[0], 40), tEntry = 0
 const T = new Float64Array(w * h).fill(Infinity), par = new Int32Array(w * h).fill(-1), order = [], tube = new Uint8Array(w * h)
 const seeds = [], balls = []
 seq.forEach((c, n) => {
@@ -88,7 +90,12 @@ seq.forEach((c, n) => {
   // sortie : point du morceau le plus proche du suivant (dernier morceau : point atteint en dernier)
   const next = seq[n + 1]
   let exit = -1, land = -1
-  if (next) {
+  if (next && lastExit) {   // morceau tracé jusqu'à son point le plus lointain, puis saut vers le point le plus proche du suivant
+    for (const i of c.px) if (T[i] < Infinity && (exit < 0 || T[i] > T[exit])) exit = i
+    let bd = Infinity, bb = -1; const pe = xy(exit)
+    for (const j of next.edge) { const d = (pe[0] - j % w + M) ** 2 + (pe[1] - (j / w | 0) + M) ** 2; if (d < bd) { bd = d; bb = j } }
+    land = ridgeNear(xy(bb), next, 30)
+  } else if (next) {
     let bd = Infinity, a = -1, bb = -1
     for (const i of c.edge) { const pi = xy(i); for (const j of next.edge) { const d = (pi[0] - j % w + M) ** 2 + (pi[1] - (j / w | 0) + M) ** 2; if (d < bd) { bd = d; a = i; bb = j } } }
     exit = ridgeNear(xy(a), c, 30); land = ridgeNear(xy(bb), next, 30)

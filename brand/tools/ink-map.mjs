@@ -9,7 +9,7 @@ import { chromium } from 'playwright'
 import { readFileSync, writeFileSync } from 'node:fs'
 
 const mot = process.argv[2] || 'holosene'
-const svg = readFileSync(new URL(`../../public/logotypes/svg/${mot}.svg`, import.meta.url), 'utf8')
+const svg = readFileSync(new URL(mot === 'monogram' ? '../../src/holosene/monogram-shape.svg' : `../../public/logotypes/svg/${mot}.svg`, import.meta.url), 'utf8')
 const VB = svg.match(/viewBox="([^"]+)"/)[1].split(/\s+/).map(Number)
 const glass = readFileSync(new URL('../../src/glass.js', import.meta.url), 'utf8')
 const edt = glass.slice(glass.indexOf('export function insideDistance')).replace('export ', '')

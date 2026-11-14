@@ -17,7 +17,7 @@ import { chromium } from 'playwright'
 import { readFileSync, writeFileSync } from 'node:fs'
 
 const mot = process.argv[2] || 'holosene'
-const svg = readFileSync(new URL(`../../public/logotypes/svg/${mot}.svg`, import.meta.url), 'utf8').replace(/currentColor/g, '#000')
+const svg = readFileSync(new URL(mot === 'monogram' ? '../../src/holosene/monogram-shape.svg' : `../../public/logotypes/svg/${mot}.svg`, import.meta.url), 'utf8').replace(/currentColor/g, '#000')
 const inkPng = readFileSync(new URL(`../../src/holosene/${mot}-ink.png`, import.meta.url)).toString('base64')
 const VB = svg.match(/viewBox="([^"]+)"/)[1].split(/\s+/).map(Number)
 const P = { S: 1.5, M: 40, SEED: 7, ITER: 150 }

@@ -1,5 +1,5 @@
 /**
- * Lettrage HOLOSENE à l'encre de Chine (holosene.fr). Forme exacte du pack, rien n'est redessiné : le contour vient du
+ * Lettrage HOLOSENE et gros logo S·o à l'encre de Chine (holosene.fr). Forme exacte du pack, rien n'est redessiné : le contour vient du
  * tracé vectoriel du SVG de la page, rendu à la résolution de l'écran (net à toute taille). La matière de l'encre vient
  * d'une simulation physique précalculée (holosene-bake.webp, brand/tools/ink-bake.mjs) : fibres du papier, pinceau qui
  * se vide dans les déliés, carbone porté par l'eau et déposé en séchant, bord mouillé plus chargé. La carte
@@ -7,15 +7,27 @@
  * Apparition, une seule fois au chargement : le mot se trace tout seul, comme le nom du portfolio (une boule parcourt
  * les lettres, le trait naît derrière elle avec un bout rond ; carte holosene-along.png, brand/tools/ink-trace.mjs).
  * Ensuite, image fixe : aucun effet au survol.
+ * Le logo S·o : la forme du gros logo de l'accueil, contraste d'épaisseur compris (monogram-shape.svg,
+ * brand/tools/mono-shape.mjs, calculée depuis les cartes du kit), mêmes cartes et même rendu ; il se trace avant le mot.
  * Le SVG du logotype reste dans la page (lecteurs d'écran, repli sans WebGL 2) ; il est seulement rendu transparent.
  */
-import mapUrl from './holosene-ink.png?url'
-import alongUrl from './holosene-along.png?url'
-import bakeUrl from './holosene-bake.webp?url'
-import { TRACE } from './holosene-trace.js'
+import hMap from './holosene-ink.png?url'
+import hAlong from './holosene-along.png?url'
+import hBake from './holosene-bake.webp?url'
+import { TRACE as hTrace } from './holosene-trace.js'
+import mMap from './monogram-ink.png?url'
+import mAlong from './monogram-along.png?url'
+import mBake from './monogram-bake.webp?url'
+import { TRACE as mTrace } from './monogram-trace.js'
 
-const MAP = { url: mapUrl, M: 40, RES: 1, VB: [2028, 343] }   // valeurs de brand/tools/ink-map.mjs
-const BAKE_S = 1.5   // px par unité de holosene-bake.webp (brand/tools/ink-bake.mjs, même marge M)
+// cartes de brand/tools/ink-map.mjs (marge M, RES px par unité), ink-trace.mjs et ink-bake.mjs (BAKE_S px par unité) ;
+// shape : contour net (groupe .mot du SVG de la page), redessiné à la taille de l'écran ; sans shape : l'image de la page
+// elle-même (monogram-shape.svg : forme assez fine pour être réduite)
+export const INK_ART = {
+  holosene: { map: hMap, along: hAlong, bake: hBake, trace: hTrace, dur: 1500, shape: (svg) => svg.querySelector('.mot').outerHTML },
+  monogram: { map: mMap, along: mAlong, bake: mBake, trace: mTrace, dur: 1000 },
+}
+const M = 40, RES = 1, BAKE_S = 1.5
 
 const VERT = `#version 300 es
 in vec2 a; void main() { gl_Position = vec4(a, 0.0, 1.0); }`
@@ -97,11 +109,13 @@ void main() {
 }`
 
 /**
- * Monte le lettrage à l'encre sur `svg` (logotype du pack dans la page). Retourne { frame(now) } ou null sans WebGL 2 ;
- * `onFail` est appelé si les cartes ne se chargent pas (le SVG reprend alors sa place), `onTraced` quand le mot est
- * entier (fin du tracé). On ne dessine que quand quelque chose change (tracé, taille, thème).
+ * Monte le rendu à l'encre de `art` (INK_ART) sur `svg` (son image dans la page, dont la boîte est le cadre du dessin).
+ * Retourne { frame(now), play() } ou null sans WebGL 2 ; `onFail` est appelé si les cartes ne se chargent pas (l'image
+ * reprend alors sa place), `onTraced` quand le dessin est entier (fin du tracé). Avec `wait`, rien ne s'affiche avant
+ * play(). On ne dessine que quand quelque chose change (tracé, taille, thème).
  */
-export function createInkWord(svg, { reduced = false, onFail = () => {}, onTraced = () => {} } = {}) {
+export function createInkWord(svg, { art = INK_ART.holosene, wait = false, reduced = false, onFail = () => {}, onTraced = () => {} } = {}) {
+  const TRACE = art.trace, MAP = { url: art.map, M, RES, VB: TRACE.vb.slice(2) }
   const host = svg.parentElement
   const canvas = document.createElement('canvas')
   canvas.className = 'holo__ink'; canvas.setAttribute('aria-hidden', 'true')
@@ -132,20 +146,21 @@ export function createInkWord(svg, { reduced = false, onFail = () => {}, onTrace
     const d = Math.min(3, devicePixelRatio || 1), sw = svg.getBoundingClientRect().width
     const w = Math.min(gl.getParameter(gl.MAX_TEXTURE_SIZE), 8192, Math.max(512, Math.round(sw * d * 2))), h = Math.round(w * MAP.VB[1] / MAP.VB[0])
     if (w === maskW) return
-    const src = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${MAP.VB.join(' ')}" width="${w}" height="${h}" style="color:#fff">${svg.querySelector('.mot').outerHTML}</svg>`
-    const url = URL.createObjectURL(new Blob([src], { type: 'image/svg+xml' }))
+    const src = !art.shape ? null : `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 ${MAP.VB.join(' ')}" width="${w}" height="${h}" style="color:#fff">${art.shape(svg)}</svg>`
+    const url = src ? URL.createObjectURL(new Blob([src], { type: 'image/svg+xml' })) : null
     try {
-      const im = new Image(); im.src = url; await im.decode()
+      const im = new Image(); im.src = url || svg.currentSrc || svg.src; await im.decode()
+      const c = document.createElement('canvas'); c.width = w; c.height = h; c.getContext('2d').drawImage(im, 0, 0, w, h)
       gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, maskTex)
-      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, im); texParams(gl.LINEAR)
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, c); texParams(gl.LINEAR)
       gl.activeTexture(gl.TEXTURE0)
       maskW = w; dirty = true
-    } finally { URL.revokeObjectURL(url) }
+    } finally { if (url) URL.revokeObjectURL(url) }
   }
   // cartes (épaisseur, apparition) et contour chargés avant d'afficher quoi que ce soit : jusque-là, le titre est vide
-  let ready = false, start = 0, dirty = true, busy = true
+  let ready = false, start = wait ? Infinity : 0, dirty = true, busy = true
   const load = (url) => { const im = new Image(); im.src = url; return im.decode().then(() => im) }
-  Promise.all([load(MAP.url), load(alongUrl), load(bakeUrl), makeMask()]).then(([img, alongImg, bakeImg]) => {
+  Promise.all([load(MAP.url), load(art.along), load(art.bake), makeMask()]).then(([img, alongImg, bakeImg]) => {
     gl.activeTexture(gl.TEXTURE3); gl.bindTexture(gl.TEXTURE_2D, gl.createTexture())
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, bakeImg); texParams(gl.LINEAR)
     gl.uniform2f(U.uBakeK, BAKE_S / bakeImg.naturalWidth, BAKE_S / bakeImg.naturalHeight)
@@ -156,7 +171,7 @@ export function createInkWord(svg, { reduced = false, onFail = () => {}, onTrace
     gl.uniform2f(U.uMapK, MAP.RES / img.naturalWidth, MAP.RES / img.naturalHeight)
     host.append(canvas); fit()
     host.classList.add('ink-on'); host.classList.remove('ink-wait')
-    ready = true; start = performance.now()
+    ready = true; if (!wait) start = performance.now()
   }).catch((err) => { console.warn('encre du logotype indisponible', err); onFail() })
 
   // taille et position : la toile déborde du mot (renflement), le dessin est repéré par le cadre du SVG
@@ -184,10 +199,10 @@ export function createInkWord(svg, { reduced = false, onFail = () => {}, onTrace
   readInk(); new MutationObserver(readInk).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] })
 
   let done = false
-  const DUR = 1500, DELAY = 100   // tracé : durée (ms) et petit temps avant qu'il commence
+  const DUR = art.dur, DELAY = 100   // tracé : durée (ms) et petit temps avant qu'il commence
   const ext = TRACE.amax + TRACE.dmax + 2
   const frame = (now) => {
-    if (!ready) return
+    if (!ready || start === Infinity) return
     // apparition tracée, une seule fois au chargement (vitesse constante, comme une boule qui parcourt les lettres)
     const a = reduced ? 1 : Math.max(0, Math.min(1, (now - start - DELAY) / DUR))
     const front = a < 1 ? a * ext : 1e9
@@ -209,5 +224,7 @@ export function createInkWord(svg, { reduced = false, onFail = () => {}, onTrace
     gl.uniform4fv(U.uB, bl)
     gl.drawArrays(gl.TRIANGLES, 0, 3)
   }
-  return { frame }
+  // play() : départ du tracé (avant que les cartes soient prêtes : dès qu'elles le sont)
+  const play = () => { if (start === Infinity) { wait = false; start = ready ? performance.now() : 0; dirty = true } }
+  return { frame, play }
 }
