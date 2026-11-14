@@ -8,13 +8,13 @@
   <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
 </head>
 <body class="page-404">
-  <main class="notfound wrap">
-    <div class="notfound__lens" aria-hidden="true"></div>
-    <p class="lbl">Erreur 404 · Error 404</p>
-    <h1 class="disp">Page introuvable</h1>
-    <p>Cette page n’existe pas ou a été déplacée. · This page does not exist or has moved.</p>
-    <p><a class="btn" href="/">Accueil</a> <a class="btn" href="/en/" hreflang="en" lang="en">Home</a></p>
+  <canvas class="bg-canvas" aria-hidden="true"></canvas>
+  <main class="nf">
+    <p class="nf__code" aria-hidden="true">4<span class="nf__o"></span>4</p>
+    <h1 class="nf__title" data-en="Page not found">Page introuvable</h1>
+    <p class="nf__text" data-en="This address leads nowhere. The portfolio is still here.">Cette adresse ne mène nulle part. Le portfolio, lui, est toujours là.</p>
+    <a class="btn nf__btn" href="/" data-en-href="/en/" data-en="Back to home">Retour à l’accueil</a>
   </main>
-  <script type="module" src="/src/main.js"></script>
+  <script type="module" src="/src/notfound.js"></script>
 </body>
 </html>

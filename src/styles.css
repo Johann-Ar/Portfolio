@@ -524,9 +524,6 @@ html.brand-fade .fiche-brand { transition: opacity 0.4s var(--ease-flow), visibi
 .legal h2 { margin-top: var(--sp-4); }
 /* informations à fournir (temporaires) : orange lisible (contraste AA) sur fond clair, orange clair sur fond sombre */
 .legal .btn { margin-right: 8px; margin-top: var(--sp-4); }
-.notfound { min-height: 100svh; display: grid; place-content: center; justify-items: start; gap: 16px; padding-block: 80px; }
-.notfound h1 { font-size: var(--fs-h1); }
-.notfound__lens { width: 120px; height: 120px; border-radius: 50%; background: var(--iris-conic); -webkit-mask: radial-gradient(circle, transparent 60%, #000 61%); mask: radial-gradient(circle, transparent 60%, #000 61%); opacity: 0.85; }
 
 @media (max-width: 860px) {
   .contact { padding-block: var(--sp-6) var(--sp-5); }
