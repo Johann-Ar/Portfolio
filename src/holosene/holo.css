@@ -1,7 +1,7 @@
-/* holosene.fr : le logotype en grand, au centre de l'écran ; un lien en dessous */
-.holo { min-height: 100svh; }
+/* holosene.fr : le monogramme, le logotype en grand au centre de l'écran, un lien en dessous ; pied de page du portfolio */
+.holo { min-height: 100svh; display: grid; grid-template-rows: 1fr auto; }
 .holo__main {
-  position: relative; z-index: 1; min-height: 100svh; box-sizing: border-box;
+  position: relative; z-index: 1; box-sizing: border-box;
   display: grid; justify-items: center; align-content: center; gap: clamp(14px, 2.6vh, 28px);
   padding: clamp(20px, 5vh, 56px) 16px;
 }
@@ -10,7 +10,13 @@
 /* lettrage à l'encre (ink-word.js) : la toile déborde du mot (renflement) ; le SVG reste en place, transparent */
 .holo__ink { position: absolute; left: -2%; top: -6%; width: 104%; height: 112%; pointer-events: none; }
 .holo__title.ink-on .logotype, .holo__title.ink-wait .logotype { opacity: 0; }   /* rien avant l'encre : pas d'image intermédiaire */
-.holo__link { transition: opacity 0.7s ease, transform 0.7s cubic-bezier(0.2, 0.7, 0.2, 1); font: 600 clamp(13px, 1.4vw, 15px)/1 var(--font-text); letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink); text-decoration: none; padding: 10px 4px; }
+.holo__late { transition: opacity 0.7s ease, transform 0.7s cubic-bezier(0.2, 0.7, 0.2, 1); }
+/* monogramme du kit, blanc (#FFFFFF, même blanc que l'encre du mot) */
+.holo__mono { display: block; height: clamp(44px, 8vh, 84px); width: auto; margin-bottom: clamp(4px, 2vh, 24px); }
+.holo__foot { width: 100%; box-sizing: border-box; }
+/* pied de page du portfolio : © à gauche, contact au centre (à la place du nom), mentions légales à droite */
+@media (min-width: 761px) { .holo__foot > a.holo__mail { grid-column: 2; grid-row: 1; justify-self: center; } }
+.holo__link { font: 600 clamp(13px, 1.4vw, 15px)/1 var(--font-text); letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink); text-decoration: none; padding: 10px 4px; }
 .holo__link:hover, .holo__link:focus-visible { text-decoration: underline; text-underline-offset: 4px; }
-.trace-wait .holo__link { opacity: 0; transform: translateY(6px); pointer-events: none; }   /* après le tracé du mot */
-@media (prefers-reduced-motion: reduce) { .holo__link { transition: none; } .trace-wait .holo__link { transform: none; } }
+.trace-wait .holo__late { opacity: 0; transform: translateY(6px); pointer-events: none; }   /* après le tracé du mot */
+@media (prefers-reduced-motion: reduce) { .holo__late { transition: none; } .trace-wait .holo__late { transform: none; } }

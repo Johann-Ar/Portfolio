@@ -9,13 +9,19 @@
   <link rel="icon" href="../favicon.ico?v=17" sizes="32x32" />
   <link rel="apple-touch-icon" href="../apple-touch-icon.png" />
   <link rel="preload" href="../fonts/outfit-variable.woff2" as="font" type="font/woff2" crossorigin />
-  <noscript><style>.holo__title .logotype, .holo__link { opacity: 1 !important; }</style></noscript>
+  <noscript><style>.holo__title .logotype, .holo__late { opacity: 1 !important; transform: none !important; }</style></noscript>
 </head>
 <body class="holo trace-wait">
   <main class="holo__main">
+    <img class="holo__mono holo__late" src="../media/monogram-mono-white.svg" alt="" width="470" height="576" draggable="false" />
     <h1 class="holo__title ink-wait"><!--HOLO-LOGO--></h1>
-    <a class="holo__link" href="../">Portfolio <span aria-hidden="true">→</span></a>
+    <a class="holo__link holo__late" href="../">Portfolio <span aria-hidden="true">→</span></a>
   </main>
+  <footer class="foot wrap holo__foot holo__late">
+    <p class="lbl">© <!--HOLO-YEAR--> HOLOSENE · Johann Arata</p>
+    <a class="lbl holo__mail" href="mailto:arata.johann@gmail.com" translate="no">arata.johann@gmail.com</a>
+    <a class="lbl" href="../mentions-legales.html">Mentions légales</a>
+  </footer>
   <script type="module" src="/src/holosene/main.js"></script>
 </body>
 </html>

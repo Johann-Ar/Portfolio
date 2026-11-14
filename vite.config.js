@@ -79,6 +79,7 @@ function holoPage() {
       if (!html.includes('<!--HOLO-LOGO-->')) return html
       const { logotypeSvg } = await import(`${pathToFileURL(resolve('src/logotype-svg.js')).href}?t=${Date.now()}`)
       return html.replace('<!--HOLO-LOGO-->', logotypeSvg({ mot: 'holosene', className: 'holo__logo', renflement: true }))
+        .replace('<!--HOLO-YEAR-->', String(new Date().getFullYear()))
     },
   }
 }
