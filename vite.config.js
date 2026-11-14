@@ -90,7 +90,9 @@ function themeHead() {
     transformIndexHtml(html) {
       const { colors } = JSON.parse(readFileSync(resolve('design/logo-kit/tokens/iris.json'), 'utf8'))
       // site en clair (les fiches projet, en sombre, sont des calques dans la page)
-      const meta = `<meta name="theme-color" content="${colors.bgLight}" />`
+      // page en sombre d'emblée (data-theme="dark" dans le HTML : holosene.fr) : fond sombre du site (src/theme.css)
+      const bg = /<html[^>]*data-theme="dark"/.test(html) ? '#0D0D0D' : colors.bgLight
+      const meta = `<meta name="theme-color" content="${bg}" />`
       // toujours en clair au chargement (data-theme="light" dans le HTML), sur tous les appareils, quel que soit le mode du
       // système ; le bouton Clair / Sombre ne vaut que pour la visite (main.js). Les anciens choix mémorisés par une
       // version précédente du site (theme, site-theme) sont effacés : ils faisaient démarrer certains téléphones en sombre
@@ -100,7 +102,7 @@ function themeHead() {
       // (fond posé sur body, pas sur html : celui de body doit rester le fond de la fenêtre, sous les calques en z-index négatif)
       // :where(body) : spécificité nulle, la feuille de style l'emporte où qu'elle soit (dans la version compilée, son <link>
       // est placé avant cette règle)
-      const guard = `<style>:where(body){background:${colors.bgLight};visibility:hidden}</style>`
+      const guard = `<style>:where(body){background:${bg};visibility:hidden}</style>`
       return html.replace('</head>', `  ${meta}\n  ${guard}\n  ${boot}\n</head>`)
     },
   }

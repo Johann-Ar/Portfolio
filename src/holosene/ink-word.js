@@ -6,8 +6,9 @@
  * résolution de l'écran (net à toute taille) ; la carte holosene-ink.png (brand/tools/ink-map.mjs : distance au bord,
  * demi-épaisseur locale) donne l'épaisseur et le sens des fibres.
  * Apparition : l'encre imprègne d'abord les pleins puis gagne les déliés. Vivante : les fibres dérivent lentement, et
- * chaque visite tire un pinceau un peu différent. Curseur : le mot se renfle dessous (comme le S du logo) et l'encre y
- * est plus chargée (trait plus gras, plus foncé).
+ * chaque visite tire un pinceau un peu différent. Curseur : une balle passe dans le mot comme dans un collant (comme le
+ * S du logo et JOHANN ARATA) : les traits s'épaississent en une bosse ronde, sans loupe ; elle ne naît que si le curseur
+ * touche une lettre.
  * Le SVG du logotype reste dans la page (lecteurs d'écran, repli sans WebGL 2) ; il est seulement rendu transparent.
  */
 import mapUrl from './holosene-ink.png?url'
@@ -40,27 +41,25 @@ float fbm(vec2 p) { float s = 0.0, a = 0.5; for (int i = 0; i < 4; i++) { s += a
 
 void main() {
   vec2 p = vec2(gl_FragCoord.x, uRes.y - gl_FragCoord.y);
-  // renflement : sous le curseur, le dessin est lu plus près du curseur (loupe douce, sans pli)
-  vec2 dp = p - uPtr.xy;
-  float R = 115.0 * uBox.z;
-  float g = uPtr.z * exp(-dot(dp, dp) / (R * R));
-  vec2 pw = p - dp * 0.3 * g;
-  vec2 u = (pw - uBox.xy) / uBox.z;                          // unités du dessin
+  vec2 u = (p - uBox.xy) / uBox.z;                           // unités du dessin
+  // balle dans un collant : sous le curseur, les traits s'épaississent (bosse ronde), sans loupe
+  vec2 dp = (p - uPtr.xy) / uBox.z;
+  float g = uPtr.z * exp(-dot(dp, dp) / (62.0 * 62.0));
   vec4 t = texture(uMap, (u + uM) * uMapK);
-  float sd = t.r * 48.0 - 8.0;                               // distance au bord (unités, positive dedans)
+  float sd = t.r * 48.0 - 8.0 + 10.0 * g;                    // distance au bord (unités, positive dedans), bosse comprise
   if (sd < -4.0) { o = vec4(0.0); return; }
-  float T = max(t.g * 48.0, 0.5);                            // demi-épaisseur locale (unités)
+  float T = max(t.g * 48.0, 0.5) + 18.0 * g;                 // demi-épaisseur locale (unités) : la bosse est plus chargée
   vec2 sp = u + uSeed * 37.0;
   float tm = uTime * 0.012;
-  // encre plus chargée sous le curseur
-  sd += 1.4 * g; T += 7.0 * g;
   // contour : le tracé vectoriel, lu un peu de travers (bord légèrement irrégulier, comme l'encre sur le papier)
   vec2 jit = vec2(fbm(sp * 0.05 + tm) - 0.5, fbm(sp * 0.05 + 9.3 - tm) - 0.5) * 1.6 + (vec2(vnoise(sp * 0.5), vnoise(sp * 0.5 + 4.1)) - 0.5) * 0.5;
   vec2 mu = (u + jit) / uVB;
-  float inside = all(greaterThanEqual(mu, vec2(0.0))) && all(lessThanEqual(mu, vec2(1.0))) ? texture(uMask, mu).a : 0.0;
-  // sous le curseur, l'encre déborde un peu (trait plus gras)
+  float mask = all(greaterThanEqual(mu, vec2(0.0))) && all(lessThanEqual(mu, vec2(1.0))) ? texture(uMask, mu).a : 0.0;
+  // un seul contour : celui du tracé vectoriel (couverture convertie en distance, à un pixel près), qui laisse la place
+  // à celui de la carte (distance au bord + bosse) là où la balle gonfle le trait : pas de double bord ni de fondu
   float aa = 0.9 / uBox.z;
-  inside = max(inside, g * smoothstep(-aa, aa, sd));
+  float sdv = (mask - 0.5) * 2.0 * aa;
+  float inside = smoothstep(-aa, aa, mix(sdv, sd, smoothstep(0.0, 0.3, g)));
   if (inside <= 0.003) { o = vec4(0.0); return; }
   // épaisseur ⇒ densité : pleins saturés, déliés clairs
   float tn = clamp(T / 21.0, 0.0, 1.0);
@@ -136,6 +135,10 @@ export function createInkWord(svg, { reduced = false } = {}) {
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
     gl.uniform2f(U.uMapK, MAP.RES / img.naturalWidth, MAP.RES / img.naturalHeight)
+    // distance au bord lue aussi côté processeur : la balle ne naît que si le curseur touche une lettre
+    const c2 = document.createElement('canvas'); c2.width = img.naturalWidth; c2.height = img.naturalHeight
+    const x2 = c2.getContext('2d', { willReadFrequently: true }); x2.drawImage(img, 0, 0)
+    sdMap = { w: c2.width, h: c2.height, d: x2.getImageData(0, 0, c2.width, c2.height).data }
     host.append(canvas); host.classList.add('ink-on'); fit()
     ready = true; start = performance.now()
   }).catch((err) => console.warn('encre du logotype indisponible', err))
@@ -164,10 +167,19 @@ export function createInkWord(svg, { reduced = false } = {}) {
 
   // curseur : position lissée, présence qui monte quand il passe sur le mot
   const ptr = { x: -1e4, y: -1e4, tx: -1e4, ty: -1e4, on: 0, want: 0 }
+  let sdMap = null
+  const touches = (px, py) => {   // px, py : px de la toile → le curseur est-il sur une lettre (à 2 unités près) ?
+    if (!sdMap) return false
+    const X = Math.round(((px - box[0]) / box[2] + MAP.M) * MAP.RES), Y = Math.round(((py - box[1]) / box[2] + MAP.M) * MAP.RES)
+    if (X < 0 || Y < 0 || X >= sdMap.w || Y >= sdMap.h) return false
+    return sdMap.d[(Y * sdMap.w + X) * 4] / 255 * 48 - 8 > -2
+  }
   addEventListener('pointermove', (e) => {
     const r = canvas.getBoundingClientRect()
     ptr.tx = (e.clientX - r.left) * dpr; ptr.ty = (e.clientY - r.top) * dpr
-    ptr.want = e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom ? 1 : 0
+    // seulement à la souris ; la balle naît sur une lettre, puis suit le curseur tant qu'il reste sur le mot
+    const onWord = e.pointerType === 'mouse' && e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom
+    ptr.want = onWord && (ptr.want || touches(ptr.tx, ptr.ty)) ? 1 : 0
     if (ptr.on < 0.01) { ptr.x = ptr.tx; ptr.y = ptr.ty }
   }, { passive: true })
   document.addEventListener('pointerleave', () => { ptr.want = 0 })
@@ -176,7 +188,7 @@ export function createInkWord(svg, { reduced = false } = {}) {
   const frame = (now) => {
     if (!ready) return
     const dt = Math.min(0.1, (now - last) / 1000); last = now
-    const f = 1 - Math.exp(-dt / 0.08)
+    const f = 1 - Math.exp(-dt / 0.12)   // la balle suit le curseur avec un léger retard
     ptr.x += (ptr.tx - ptr.x) * f; ptr.y += (ptr.ty - ptr.y) * f
     ptr.on += (ptr.want - ptr.on) * (1 - Math.exp(-dt / (ptr.want ? 0.18 : 0.5)))
     const reveal = reduced ? 1 : Math.min(1, (now - start) / 1800)
