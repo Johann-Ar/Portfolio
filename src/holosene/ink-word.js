@@ -2,8 +2,9 @@
  * Lettrage HOLOSENE à l'encre (holosene.fr), même direction artistique que le grand O : l'épaisseur du trait règle la
  * densité de l'encre. Les pleins et les gouttes sont noirs et saturés, les déliés clairs et secs (fibres du pinceau qui
  * se séparent) ; l'encre s'accumule sur les bords (bord mouillé), le bord est irrégulier, le papier a un grain.
- * Forme exacte du pack : carte holosene-ink.png (brand/tools/ink-map.mjs : distance au bord, demi-épaisseur
- * locale, distance lissée), rien n'est redessiné.
+ * Forme exacte du pack, rien n'est redessiné : le contour vient du tracé vectoriel du SVG de la page, rendu à la
+ * résolution de l'écran (net à toute taille) ; la carte holosene-ink.png (brand/tools/ink-map.mjs : distance au bord,
+ * demi-épaisseur locale) donne l'épaisseur et le sens des fibres.
  * Apparition : l'encre imprègne d'abord les pleins puis gagne les déliés. Vivante : les fibres dérivent lentement, et
  * chaque visite tire un pinceau un peu différent. Curseur : le mot se renfle dessous (comme le S du logo) et l'encre y
  * est plus chargée (trait plus gras, plus foncé).
@@ -23,6 +24,8 @@ uniform vec3 uBox;       // coin haut gauche du dessin (px de la toile), px par 
 uniform vec2 uMapK;      // conversion unités → coordonnées de la carte : (u + M) × RES / taille
 uniform float uM;
 uniform sampler2D uMap;
+uniform sampler2D uMask;  // tracé vectoriel du mot rendu à la taille de l'écran (alpha), cadre = viewBox
+uniform vec2 uVB;
 uniform float uTime, uReveal, uSeed;
 uniform vec3 uInk;
 uniform vec3 uPtr;       // curseur (px de la toile, y vers le bas), présence
@@ -51,12 +54,14 @@ void main() {
   float tm = uTime * 0.012;
   // encre plus chargée sous le curseur
   sd += 1.4 * g; T += 7.0 * g;
-  // bord irrégulier : fibres et petites bavures
-  float rough = 1.5 * (fbm(sp * 0.06 + tm) - 0.5) + 0.7 * (vnoise(sp * 0.55) - 0.5);
+  // contour : le tracé vectoriel, lu un peu de travers (bord légèrement irrégulier, comme l'encre sur le papier)
+  vec2 jit = vec2(fbm(sp * 0.05 + tm) - 0.5, fbm(sp * 0.05 + 9.3 - tm) - 0.5) * 1.6 + (vec2(vnoise(sp * 0.5), vnoise(sp * 0.5 + 4.1)) - 0.5) * 0.5;
+  vec2 mu = (u + jit) / uVB;
+  float inside = all(greaterThanEqual(mu, vec2(0.0))) && all(lessThanEqual(mu, vec2(1.0))) ? texture(uMask, mu).a : 0.0;
+  // sous le curseur, l'encre déborde un peu (trait plus gras)
   float aa = 0.9 / uBox.z;
-  float e = sd + rough;
-  float inside = smoothstep(-aa, aa, e);
-  if (inside <= 0.0) { o = vec4(0.0); return; }
+  inside = max(inside, g * smoothstep(-aa, aa, sd));
+  if (inside <= 0.003) { o = vec4(0.0); return; }
   // épaisseur ⇒ densité : pleins saturés, déliés clairs
   float tn = clamp(T / 21.0, 0.0, 1.0);
   float thick = smoothstep(0.12, 0.85, tn);
@@ -96,16 +101,36 @@ export function createInkWord(svg, { reduced = false } = {}) {
   gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer())
   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW)
   gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0)
-  const U = {}; for (const n of ['uRes', 'uBox', 'uMapK', 'uM', 'uMap', 'uTime', 'uReveal', 'uSeed', 'uInk', 'uPtr']) U[n] = gl.getUniformLocation(prog, n)
+  const U = {}; for (const n of ['uRes', 'uBox', 'uMapK', 'uM', 'uMap', 'uTime', 'uReveal', 'uSeed', 'uInk', 'uPtr', 'uMask', 'uVB']) U[n] = gl.getUniformLocation(prog, n)
   gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA)
-  gl.uniform1i(U.uMap, 0); gl.uniform1f(U.uM, MAP.M); gl.uniform1f(U.uSeed, Math.random())
+  gl.uniform1i(U.uMap, 0); gl.uniform1i(U.uMask, 1); gl.uniform2f(U.uVB, ...MAP.VB); gl.uniform1f(U.uM, MAP.M); gl.uniform1f(U.uSeed, Math.random())
 
+  // contour net : le tracé du mot (groupe .mot du SVG de la page) rendu en image à 1,5 × la taille affichée
+  const maskTex = gl.createTexture()
+  let maskW = 0, maskTimer = 0
+  async function makeMask() {
+    const d = Math.min(2, devicePixelRatio || 1), sw = svg.getBoundingClientRect().width
+    const w = Math.min(4096, Math.max(512, Math.round(sw * d * 1.5))), h = Math.round(w * MAP.VB[1] / MAP.VB[0])
+    if (w === maskW) return
+    const src = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${MAP.VB.join(' ')}" width="${w}" height="${h}" style="color:#fff">${svg.querySelector('.mot').outerHTML}</svg>`
+    const url = URL.createObjectURL(new Blob([src], { type: 'image/svg+xml' }))
+    try {
+      const im = new Image(); im.src = url; await im.decode()
+      gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, maskTex)
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, im)
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
+      gl.activeTexture(gl.TEXTURE0)
+      maskW = w
+    } finally { URL.revokeObjectURL(url) }
+  }
   // carte : chargée avant d'afficher quoi que ce soit (jusque-là, le SVG reste visible)
   let ready = false, start = 0
   const tex = gl.createTexture()
   const img = new Image()
   img.src = MAP.url
-  img.decode().then(() => {
+  Promise.all([img.decode(), makeMask()]).then(() => {
+    gl.activeTexture(gl.TEXTURE0)
     gl.bindTexture(gl.TEXTURE_2D, tex)
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img)
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
@@ -124,7 +149,10 @@ export function createInkWord(svg, { reduced = false } = {}) {
     if (canvas.width !== W || canvas.height !== H) { canvas.width = W; canvas.height = H }
     box = [(s.left - r.left) * dpr, (s.top - r.top) * dpr, s.width / MAP.VB[0] * dpr]
   }
-  new ResizeObserver(() => ready && fit()).observe(host)
+  new ResizeObserver(() => {
+    if (!ready) return
+    fit(); clearTimeout(maskTimer); maskTimer = setTimeout(() => makeMask().catch((err) => console.warn(err)), 150)
+  }).observe(host)
 
   // encre : couleur du thème (propriété color du titre)
   let ink = [0.118, 0.118, 0.118]
